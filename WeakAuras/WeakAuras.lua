@@ -5818,15 +5818,16 @@ function Private.ensurePRDFrame()
       end
       personalRessourceDisplayFrame.texture:SetTexture("Interface\\AddOns\\WeakAuras\\Media\\Textures\\PRDFrameKui");
     else
-      local namePlateVerticalScale = tonumber(GetCVar("NamePlateVerticalScale"));
-      local zeroBasedScale = namePlateVerticalScale - 1.0;
-      local clampedZeroBasedScale = Saturate(zeroBasedScale);
-      local horizontalScale = tonumber(GetCVar("NamePlateHorizontalScale"));
-      local baseNamePlateWidth = NamePlateDriverFrame.baseNamePlateWidth;
-      prdWidth = baseNamePlateWidth * horizontalScale * Lerp(1.1, 1.0, clampedZeroBasedScale) - 24;
-      prdHeight = 4 * namePlateVerticalScale * Lerp(1.2, 1.0, clampedZeroBasedScale) * 2  + 1;
-      personalRessourceDisplayFrame:SetScale(1 / UIParent:GetEffectiveScale());
-      personalRessourceDisplayFrame.texture:SetTexture("Interface\\AddOns\\WeakAuras\\Media\\Textures\\PRDFrame");
+      -- some of these CVars were removed
+      -- local namePlateVerticalScale = tonumber(GetCVar("NamePlateVerticalScale"));
+      -- local zeroBasedScale = (namePlateVerticalScale or 1) - 1.0;
+      -- local clampedZeroBasedScale = Saturate(zeroBasedScale);
+      -- local horizontalScale = tonumber(GetCVar("NamePlateHorizontalScale"));
+      -- local baseNamePlateWidth = NamePlateDriverFrame.baseNamePlateWidth;
+      -- prdWidth = baseNamePlateWidth * horizontalScale * Lerp(1.1, 1.0, clampedZeroBasedScale) - 24;
+      -- prdHeight = 4 * namePlateVerticalScale * Lerp(1.2, 1.0, clampedZeroBasedScale) * 2  + 1;
+      -- personalRessourceDisplayFrame:SetScale(1 / UIParent:GetEffectiveScale());
+      -- personalRessourceDisplayFrame.texture:SetTexture("Interface\\AddOns\\WeakAuras\\Media\\Textures\\PRDFrame");
     end
 
     local scale = UIParent:GetEffectiveScale() / personalRessourceDisplayFrame:GetEffectiveScale();

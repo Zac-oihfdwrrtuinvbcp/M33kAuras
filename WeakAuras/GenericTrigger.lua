@@ -2286,6 +2286,7 @@ do
   end
 
   local function CheckGCD()
+    if GetRestrictedActionStatus(Enum.RestrictedActionType.SecretCooldowns) then return end
     local event;
     local startTime, duration, _, modRate
     if WeakAuras.IsClassicEra() then
@@ -2532,6 +2533,7 @@ do
 
     -- Helper functions
     AddEffectiveSpellId = function(self, effectiveSpellId, userSpellId)
+      if GetRestrictedActionStatus(Enum.RestrictedActionType.SecretCooldowns) then return end
       if self.data[effectiveSpellId] then
         self.data[effectiveSpellId].watched[userSpellId] = (self.data[effectiveSpellId].watched[userSpellId] or 0) + 1
         return
@@ -2570,6 +2572,7 @@ do
 
     -- Actual api
     CheckSpellKnown = function(self)
+      if GetRestrictedActionStatus(Enum.RestrictedActionType.SecretCooldowns) then return end
       -- Check for spells whose effective spell id changed
       for userSpellId, watchedData in pairs(self.watchedSpellIds) do
         for useExact, useExactData in pairs(watchedData) do
@@ -2758,6 +2761,7 @@ do
     end,
 
     GetSpellCharges = function(self, effectiveSpellId, ignoreSpellKnown)
+      if GetRestrictedActionStatus(Enum.RestrictedActionType.SecretCooldowns) then return end
       local spellDetail = self.data[effectiveSpellId]
       if not spellDetail then
         return
@@ -2770,6 +2774,7 @@ do
     end,
 
     GetSpellCooldown = function(self, effectiveSpellId, ignoreRuneCD, showgcd, ignoreSpellKnown, track)
+      if GetRestrictedActionStatus(Enum.RestrictedActionType.SecretCooldowns) then return end
       if (not (self.data[effectiveSpellId] and self.data[effectiveSpellId].known) and not ignoreSpellKnown) then
         return;
       end
@@ -3232,6 +3237,7 @@ do
   ---@param id string
   ---@param runeDuration? number
   function WeakAuras.GetSpellCooldownUnified(id, runeDuration)
+    if GetRestrictedActionStatus(Enum.RestrictedActionType.SecretCooldowns) then return end
     local startTimeCooldown, durationCooldown, enabled, modRate
     if GetSpellCooldown then
       startTimeCooldown, durationCooldown, enabled, modRate = GetSpellCooldown(id)

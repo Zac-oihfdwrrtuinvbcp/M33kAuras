@@ -67,6 +67,7 @@ function spellCache.Build()
   end
   wipe(cache)
   local co = coroutine.create(function()
+    if true then return end -- Spell cache crashes the game
     metaData.rebuilding = true
     local id = 0
     local misses = 0
