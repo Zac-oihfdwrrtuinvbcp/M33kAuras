@@ -1900,7 +1900,7 @@ do
   local _matchDataChanged, _time, _unit, _filter, _scanFuncNameGroup, _scanFuncSpellIdGroup, _scanFuncGeneralGroup, _scanFuncName, _scanFuncSpellId, _scanFuncGeneral
 
   local function HandleAura(aura)
-    if (not aura or not aura.name) then
+    if (not aura or not aura.name or issecretvalue(aura.spellId)) then
       return
     end
     local debuffClass = FixDebuffClass(aura.dispelName, aura.spellId)
