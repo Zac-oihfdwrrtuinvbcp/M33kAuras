@@ -152,11 +152,11 @@ local unitVisible = {}
 -- Work around a issue where UnitExists returns true for nameplates even
 -- if the nameplate doesn't exist anymore
 local function UnitExistsFixed(unit)
-  if true then return false end
-  if #unit > 9 and unit:sub(1, 9) == "nameplate" then
-    return nameplateExists[unit] or false
+  local ux = UnitExists(unit)
+  if issecretvalue(ux) then
+    return false
   end
-  return UnitExists(unit) and UnitGUID(unit) or false
+  return ux and UnitGUID(unit) ~= nil
 end
 
 local function UnitIsVisibleFixed(unit)
@@ -1933,7 +1933,7 @@ do
       if newAPI then
         -- copy parameters passed to ScanUnitWithFilter in parent's scope for HandleAura
         _matchDataChanged, _time, _unit, _filter, _scanFuncNameGroup, _scanFuncSpellIdGroup, _scanFuncGeneralGroup, _scanFuncName, _scanFuncSpellId, _scanFuncGeneral = matchDataChanged, time, unit, filter, scanFuncNameGroup, scanFuncSpellIdGroup, scanFuncGeneralGroup, scanFuncName, scanFuncSpellId, scanFuncGeneral
-        if unitAuraUpdateInfo then
+        if unitAuraUpdateInfo and false then
           -- incremental
           if unitAuraUpdateInfo.addedAuras ~= nil then
             for _, aura in ipairs(unitAuraUpdateInfo.addedAuras) do
@@ -2044,8 +2044,7 @@ end
 
 local function ScanGroupUnit(time, matchDataChanged, unitType, unit, unitAuraUpdateInfo)
   local unitExists = UnitExistsFixed(unit)
-  if existingUnits[unit] ~= unitExists then
-    existingUnits[unit] = unitExists
+  if unitExists then
 
     if unitExistScanFunc[unit] then
       for id, idData in pairs(unitExistScanFunc[unit]) do
@@ -2306,7 +2305,7 @@ local function EventHandler(frame, event, arg1, arg2, ...)
       ScanGroupUnit(time, matchDataChanged, nil, "vehicle")
     end
   elseif event == "UNIT_AURA" then
-    if GetRestrictedActionStatus(Enum.RestrictedActionType.SecretAuras) then return end
+    -- if GetRestrictedActionStatus(Enum.RestrictedActionType.SecretAuras) then return end
     if brokenUnitMap[arg1] and not UnitExists(arg1) then
       arg1 = brokenUnitMap[arg1]
     end
@@ -2648,9 +2647,6 @@ local function LoadAura(id, triggernum, triggerInfo)
     unitExistScanFunc[triggerInfo.unit][id] = unitExistScanFunc[triggerInfo.unit][id] or {}
     tinsert(unitExistScanFunc[triggerInfo.unit][id], triggerInfo)
 
-    if existingUnits[triggerInfo.unit] == nil then
-      existingUnits[triggerInfo.unit] = UnitExistsFixed(triggerInfo.unit)
-    end
   end
 
   if triggerInfo.fetchRole then
