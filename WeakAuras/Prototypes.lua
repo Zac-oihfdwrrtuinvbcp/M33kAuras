@@ -3534,7 +3534,7 @@ Private.event_prototypes = {
         name = "percentpower",
         display = L["Power (%)"],
         type = "number",
-        init = "total ~= 0 and (value / total) * 100 or nil",
+        init = "UnitPowerPercent(unit, powerType)",
         store = true,
         conditionType = "number",
         multiEntry = {
@@ -3547,7 +3547,7 @@ Private.event_prototypes = {
         name = "deficit",
         display = L["Power Deficit"],
         type = "number",
-        init = "total - value",
+        init = "UnitPowerMissing(unit, powerType)",
         store = true,
         conditionType = "number",
         multiEntry = {
