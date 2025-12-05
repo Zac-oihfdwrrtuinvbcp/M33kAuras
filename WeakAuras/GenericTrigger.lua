@@ -3237,7 +3237,6 @@ do
   ---@param id string
   ---@param runeDuration? number
   function WeakAuras.GetSpellCooldownUnified(id, runeDuration)
-    if GetRestrictedActionStatus(Enum.RestrictedActionType.SecretCooldowns) then return end
     local startTimeCooldown, durationCooldown, enabled, modRate
     if GetSpellCooldown then
       startTimeCooldown, durationCooldown, enabled, modRate = GetSpellCooldown(id)
@@ -3256,14 +3255,23 @@ do
 
     local charges, maxCharges, startTimeCharges, durationCharges, modRateCharges = GetSpellCharges(id);
 
-    startTimeCooldown = startTimeCooldown or 0;
-    durationCooldown = durationCooldown or 0;
+    startTimeCooldown = issecretvalue(startTimeCooldown) and 0 or startTimeCooldown or 0
+    durationCooldown = issecretvalue(durationCooldown) and 0 or durationCooldown or 0
 
-    startTimeCharges = startTimeCharges or 0;
-    durationCharges = durationCharges or 0;
+    startTimeCharges = issecretvalue(startTimeCharges) and 0 or startTimeCharges or 0
+    durationCharges = issecretvalue(durationCharges) and 0 or durationCharges or 0
 
-    modRate = modRate or 1.0;
-    modRateCharges = modRateCharges or 1.0;
+    modRate = issecretvalue(modRate) and 1.0 or modRate or 1.0
+    modRateCharges = issecretvalue(modRateCharges) and 1.0 or modRateCharges or 1.0
+
+    if issecretvalue(enabled) then
+      enabled = false
+    end
+
+    if issecretvalue(charges) then
+      charges = nil
+      maxCharges = nil
+    end
 
     -- WORKAROUND: Sometimes the API returns very high bogus numbers causing client freezes, discard them here. CurseForge issue #1008
     if (durationCooldown > 604800) then
@@ -3321,6 +3329,9 @@ do
     end
 
     local count = GetSpellCount(id)
+    if issecretvalue(count) then
+      count = 0
+    end
 
     return charges, maxCharges, startTime, duration, unifiedCooldownBecauseRune,
            startTimeCooldown, durationCooldown, cooldownBecauseRune, startTimeCharges, durationCharges,
