@@ -613,6 +613,20 @@ function WeakAuras.IsLibsOK()
   return libsAreOk
 end
 
+if WeakAuras.BuildInfo < 120000 then
+  libsAreOk = false
+  StaticPopupDialogs["WEAKAURAS_OUTDATED_CLIENT_MIDNIGHT"] = {
+    text = "This version of WeakAuras won't load on pre Midnight clients.",
+    button1 = OKAY,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = false,
+    preferredIndex = 5,
+  }
+  StaticPopup_Show("WEAKAURAS_OUTDATED_CLIENT_MIDNIGHT")
+  return
+end
+
 if not libsAreOk then
   C_Timer.After(1, function()
     WeakAuras.prettyPrint("WeakAuras is missing necessary libraries. Please reinstall a proper package.")
