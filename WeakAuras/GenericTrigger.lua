@@ -539,6 +539,8 @@ end
 ---@type fun(id, triggernum, data, state, errorHandler)
 ---@return state
 function Private.ActivateEvent(id, triggernum, data, state, errorHandler)
+  WeakAuras.PurgeSecrets(state)
+
   local changed = state.changed or false;
   if (state.show ~= true) then
     state.show = true;
@@ -677,6 +679,10 @@ local function RunTriggerFunc(allStates, data, id, triggernum, event, arg1, arg2
       for key, state in pairs(allStates) do
         if (type(state) ~= "table") then
           errorHandler(string.format(L["All States table contains a non table at key: '%s'."], key))
+          wipe(allStates)
+          return
+        elseif issecrettable(state) then
+          errorHandler(string.format(L["State at key: '%s' is a secret table."], key))
           wipe(allStates)
           return
         end

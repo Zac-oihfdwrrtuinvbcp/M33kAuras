@@ -618,6 +618,8 @@ local function UpdateProgressFromManual(self, minMaxConfig, state, value, total)
 end
 
 local function UpdateProgressFrom(self, progressSource, minMaxConfig, state, states, parent)
+  WeakAuras.PurgeSecrets(state)
+
   local trigger = progressSource and progressSource[1] or -1
 
   if trigger == -2 then

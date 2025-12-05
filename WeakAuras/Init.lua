@@ -684,3 +684,10 @@ function WeakAuras.CountWagoUpdates()
   return 0
 end
 
+function WeakAuras.PurgeSecrets(tbl)
+  for k, v in pairs(tbl) do
+    if issecretvalue(v) then
+      tbl[k] = nil
+    end
+  end
+end
