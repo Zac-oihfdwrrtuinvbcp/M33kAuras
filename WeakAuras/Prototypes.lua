@@ -2576,23 +2576,23 @@ Private.event_prototypes = {
           return WeakAuras.IsClassicOrWrathOrCataOrMists() and (trigger.unit == "group" or trigger.unit == "raid" or trigger.unit == "party")
         end
       },
-      {
-        name = "raidMarkIndex",
-        display = L["Raid Mark"],
-        type = "multiselect",
-        values = "raid_mark_check_type",
-        store = true,
-        conditionType = "select",
-        init = "GetRaidTargetIndex(unit) or 0"
-      },
-      {
-        name = "raidMark",
-        display = L["Raid Mark Icon"],
-        store = true,
-        hidden = true,
-        test = "true",
-        init = "raidMarkIndex > 0 and '{rt'..raidMarkIndex..'}' or ''"
-      },
+      -- {
+      --   name = "raidMarkIndex",
+      --   display = L["Raid Mark"],
+      --   type = "multiselect",
+      --   values = "raid_mark_check_type",
+      --   store = true,
+      --   conditionType = "select",
+      --   init = "GetRaidTargetIndex(unit) or 0"
+      -- },
+      -- {
+      --   name = "raidMark",
+      --   display = L["Raid Mark Icon"],
+      --   store = true,
+      --   hidden = true,
+      --   test = "true",
+      --   init = "raidMarkIndex > 0 and '{rt'..raidMarkIndex..'}' or ''"
+      -- },
       {
         name = "dead",
         display = L["Dead"],
@@ -3673,23 +3673,23 @@ Private.event_prototypes = {
           return WeakAuras.IsClassicOrCataOrMists() and (trigger.unit == "group" or trigger.unit == "raid" or trigger.unit == "party")
         end
       },
-      {
-        name = "raidMarkIndex",
-        display = L["Raid Mark"],
-        type = "multiselect",
-        values = "raid_mark_check_type",
-        store = true,
-        conditionType = "select",
-        init = "GetRaidTargetIndex(unit) or 0"
-      },
-      {
-        name = "raidMark",
-        display = L["Raid Mark Icon"],
-        store = true,
-        hidden = true,
-        test = "true",
-        init = "raidMarkIndex > 0 and '{rt'..raidMarkIndex..'}' or ''"
-      },
+      -- {
+      --   name = "raidMarkIndex",
+      --   display = L["Raid Mark"],
+      --   type = "multiselect",
+      --   values = "raid_mark_check_type",
+      --   store = true,
+      --   conditionType = "select",
+      --   init = "GetRaidTargetIndex(unit) or 0"
+      -- },
+      -- {
+      --   name = "raidMark",
+      --   display = L["Raid Mark Icon"],
+      --   store = true,
+      --   hidden = true,
+      --   test = "true",
+      --   init = "raidMarkIndex > 0 and '{rt'..raidMarkIndex..'}' or ''"
+      -- },
       {
         type = "header",
         name = "miscellaneousHeader",
@@ -3972,23 +3972,23 @@ Private.event_prototypes = {
           return WeakAuras.IsClassicOrCataOrMists() and (trigger.unit == "group" or trigger.unit == "raid" or trigger.unit == "party")
         end
       },
-      {
-        name = "raidMarkIndex",
-        display = L["Raid Mark"],
-        type = "multiselect",
-        values = "raid_mark_check_type",
-        store = true,
-        conditionType = "select",
-        init = "GetRaidTargetIndex(unit) or 0"
-      },
-      {
-        name = "raidMark",
-        display = L["Raid Mark Icon"],
-        store = true,
-        hidden = true,
-        test = "true",
-        init = "raidMarkIndex > 0 and '{rt'..raidMarkIndex..'}' or ''"
-      },
+      -- {
+      --   name = "raidMarkIndex",
+      --   display = L["Raid Mark"],
+      --   type = "multiselect",
+      --   values = "raid_mark_check_type",
+      --   store = true,
+      --   conditionType = "select",
+      --   init = "GetRaidTargetIndex(unit) or 0"
+      -- },
+      -- {
+      --   name = "raidMark",
+      --   display = L["Raid Mark Icon"],
+      --   store = true,
+      --   hidden = true,
+      --   test = "true",
+      --   init = "raidMarkIndex > 0 and '{rt'..raidMarkIndex..'}' or ''"
+      -- },
       {
         type = "header",
         name = "miscellaneousHeader",
@@ -8749,23 +8749,23 @@ Private.event_prototypes = {
                  and not trigger.use_inverse
         end
       },
-      {
-        name = "raidMarkIndex",
-        display = L["Raid Mark"],
-        type = "multiselect",
-        values = "raid_mark_check_type",
-        store = true,
-        conditionType = "select",
-        init = "GetRaidTargetIndex(unit) or 0"
-      },
-      {
-        name = "raidMark",
-        display = L["Raid Mark Icon"],
-        store = true,
-        hidden = true,
-        test = "true",
-        init = "raidMarkIndex > 0 and '{rt'..raidMarkIndex..'}' or ''"
-      },
+      -- {
+      --   name = "raidMarkIndex",
+      --   display = L["Raid Mark"],
+      --   type = "multiselect",
+      --   values = "raid_mark_check_type",
+      --   store = true,
+      --   conditionType = "select",
+      --   init = "GetRaidTargetIndex(unit) or 0"
+      -- },
+      -- {
+      --   name = "raidMark",
+      --   display = L["Raid Mark Icon"],
+      --   store = true,
+      --   hidden = true,
+      --   test = "true",
+      --   init = "raidMarkIndex > 0 and '{rt'..raidMarkIndex..'}' or ''"
+      -- },
       {
         name = "nameplateType",
         display = L["Hostility"],

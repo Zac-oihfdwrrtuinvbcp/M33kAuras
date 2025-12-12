@@ -1523,12 +1523,12 @@ local function roleForTriggerInfo(triggerInfo, unit)
 end
 
 local function markForTriggerInfo(triggerInfo, unit)
-  if triggerInfo.fetchRaidMark then
-    local rt = GetRaidTargetIndex(unit)
-    if rt then
-      return "{rt" .. GetRaidTargetIndex(unit) .. "}"
-    end
-  end
+  -- if triggerInfo.fetchRaidMark then
+  --   local rt = GetRaidTargetIndex(unit)
+  --   if rt then
+  --     return "{rt" .. GetRaidTargetIndex(unit) .. "}"
+  --   end
+  -- end
 end
 
 local function SortMatchDataByUnitIndex(a, b)
@@ -2305,7 +2305,6 @@ local function EventHandler(frame, event, arg1, arg2, ...)
       ScanGroupUnit(time, matchDataChanged, nil, "vehicle")
     end
   elseif event == "UNIT_AURA" then
-    -- if GetRestrictedActionStatus(Enum.RestrictedActionType.SecretAuras) then return end
     if brokenUnitMap[arg1] and not UnitExists(arg1) then
       arg1 = brokenUnitMap[arg1]
     end
@@ -4330,8 +4329,6 @@ function BuffTrigger.HandleMultiEvent(frame, event, ...)
     unit = unit.."target"
     ReleaseUID(unit)
   elseif event == "UNIT_AURA" then
-    if GetRestrictedActionStatus(Enum.RestrictedActionType.SecretAuras) then return end
-
     local unit = ...
     local guid = UnitGUID(unit)
     if matchDataMulti[guid] then
