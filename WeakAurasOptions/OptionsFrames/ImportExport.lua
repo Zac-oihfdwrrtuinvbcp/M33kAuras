@@ -38,6 +38,24 @@ local function ConstructImportExport(frame)
   close:SetWidth(100);
   close:SetText(L["Close"])
 
+  local function Import_OnUpdate(self, elapsed)
+    self:SetScript("OnUpdate", nil);
+    local pasted = table.concat(self.buffer):trim()
+    self.buffer = {};
+    self.bufferPos = 0;
+
+    pasted = pasted:match("^%s*(.-)%s*$")
+    self:SetMaxBytes(5000);
+    if #pasted > 4000 then -- show truncated message to reduce lag
+      self:SetText(pasted:sub(1, 4000).. "\n\n"..L["Input is too long to display. If you see this message, there is likely something wrong with your import string."]);
+    else
+      self:SetText(pasted);
+    end
+    if #pasted > 20 then
+      WeakAuras.Import(pasted)
+    end
+  end
+
   function group.Open(self, mode, id)
     if(frame.window == "texture") then
       local texturepicker = OptionsPrivate.TexturePicker(frame, true)
@@ -66,7 +84,8 @@ local function ConstructImportExport(frame)
         elseif(mode == "table") then
           displayStr = OptionsPrivate.Private.DataToString(id, true);
         end
-        --input.editBox:SetMaxBytes(nil); Dragonflight doesn't accept nil
+        input.editBox:SetMaxBytes((2^32/2)-1);
+        input.editBox:SetScript("OnChar", nil);
         input.editBox:SetScript("OnEscapePressed", function()
           group:Close();
         end);
@@ -84,14 +103,16 @@ local function ConstructImportExport(frame)
       end
     elseif(mode == "import") then
       OptionsPrivate.SetTitle(L["Importing"])
-      input.editBox:SetScript("OnTextChanged", function(self)
-        local pasted = self:GetText()
-        pasted = pasted:match("^%s*(.-)%s*$")
-        if #pasted > 20 then
-          WeakAuras.Import(pasted)
-        end
-      end)
       input.editBox:SetText("");
+      input.editBox:SetMaxBytes(1);
+      input.editBox.buffer = {};
+      input.editBox.bufferPos = 0;
+      input.editBox:SetScript("OnChar", function(self, char)
+        self.bufferPos = self.bufferPos + 1;
+        self.buffer[self.bufferPos] = char;
+
+        self:SetScript("OnUpdate", Import_OnUpdate);
+      end)
       input.editBox:SetScript("OnEscapePressed", function() group:Close(); end);
       input.editBox:SetScript("OnMouseUp", nil);
       input:SetLabel(L["Paste text below"]);
