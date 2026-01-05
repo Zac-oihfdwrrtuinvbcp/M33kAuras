@@ -6557,12 +6557,12 @@ function Private.ExecEnv.CreateSpellChecker()
       self.spellIds[spellId] = true
     end,
     Check = function(self, spellId)
-      if spellId then
+      if spellId and not issecretvalue(spellId) then
         return self.spellIds[spellId] or self.names[Private.ExecEnv.GetSpellName(spellId)]
       end
     end,
     CheckName = function(self, name)
-      return self.names[name]
+      return not issecretvalue(name) and self.names[name]
     end
   }
   return matcher

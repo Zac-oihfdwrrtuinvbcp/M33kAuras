@@ -185,21 +185,21 @@ function TestForLongString(trigger, arg)
   local caseInsensitive = arg.canBeCaseInsensitive and trigger[name .. "_caseInsensitive"]
   if(trigger[name.."_operator"] == "==") then
     if caseInsensitive then
-      test = ("(%s and (%s):lower() == (%s):lower())"):format(name, name, Private.QuotedString(needle))
+      test = ("(%s and not issecretvalue(%s) and (%s):lower() == (%s):lower())"):format(name, name, name, Private.QuotedString(needle))
     else
-      test = ("(%s == %s)"):format(name, Private.QuotedString(needle))
+      test = ("(not issecretvalue(%s) and %s == %s)"):format(name, name, Private.QuotedString(needle))
     end
   elseif(trigger[name.."_operator"] == "find('%s')") then
     if caseInsensitive then
-      test = ("(%s and %s:lower():find((%s):lower(), 1, true))"):format(name, name, Private.QuotedString(needle))
+      test = ("(%s and not issecretvalue(%s) and %s:lower():find((%s):lower(), 1, true))"):format(name, name, name, Private.QuotedString(needle))
     else
-      test = ("(%s and %s:find(%s, 1, true))"):format(name, name, Private.QuotedString(needle))
+      test = ("(%s and not issecretvalue(%s) and %s:find(%s, 1, true))"):format(name, name, name, Private.QuotedString(needle))
     end
   elseif(trigger[name.."_operator"] == "match('%s')") then
     if caseInsensitive then
-      test = ("(%s and %s:lower():match((%s):lower()))"):format(name, name, Private.QuotedString(needle))
+      test = ("(%s and not issecretvalue(%s) and %s:lower():match((%s):lower()))"):format(name, name, name, Private.QuotedString(needle))
     else
-      test = ("(%s and %s:match(%s))"):format(name, name, Private.QuotedString(needle))
+      test = ("(%s and not issecretvalue(%s) and %s:match(%s))"):format(name, name, name, Private.QuotedString(needle))
     end
   end
   return test;
@@ -258,19 +258,19 @@ local function singleTest(arg, trigger, name, value, operator, use_exact)
         return "("..arg.test:format(value)..")";
       end
     else
-      return "(".. name .." and "..name.."==" ..(number or ("\""..(tostring(value) or "").."\""))..")";
+      return "(".. name .." and not issecretvalue(" .. name .. ") and "..name.."==" ..(number or ("\""..(tostring(value) or "").."\""))..")";
     end
   elseif(arg.test) then
     return "("..arg.test:format(tostring(value) or "")..")";
   elseif(arg.type == "longstring" and operator) then
     return TestForLongString(trigger, arg);
   elseif (arg.type == "string" or arg.type == "select") then
-    return "(".. name .." and "..name.."==" ..(number or ("\""..(tostring(value) or "").."\""))..")";
+    return "(".. name .." and not issecretvalue(" .. name .. ") and "..name.."==" ..(number or ("\""..(tostring(value) or "").."\""))..")";
   elseif (arg.type == "number") then
     return "(".. name .." and not issecretvalue(" .. name ..") and "..name..(operator or "==")..(number or 0) ..")";
   else
     -- Should be unused
-    return "(".. name .." and "..name..(operator or "==")..(number or ("\""..(tostring(value) or 0).."\""))..")";
+    return "(".. name .." and not issecretvalue(" .. name ..") and "..name..(operator or "==")..(number or ("\""..(tostring(value) or 0).."\""))..")";
   end
 end
 
@@ -3417,6 +3417,9 @@ function WeakAuras.WatchUnitChange(unit)
       local oldGUID = watchUnitChange.unitIdToGUID[unitA]
       local newGUID = WeakAuras.UnitExistsFixed(unitA) and UnitGUID(unitA)
       local unitExists = UnitExists(unitA) -- UnitExistsFixed check both UnitExists and UnitGUID, but in edge cases we are interested in UnitExists
+      if  issecretvalue(newGUID) or issecretvalue(oldGUID) then
+        return
+      end
       if oldGUID ~= newGUID or oldUnitExists ~= unitExists then
         eventsToSend["UNIT_CHANGED_" .. unitA] = unitA
         if watchUnitChange.GUIDToUnitIds[oldGUID] then
