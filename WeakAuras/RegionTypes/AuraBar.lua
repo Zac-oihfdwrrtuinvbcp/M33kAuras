@@ -297,7 +297,11 @@ local barPrototype = {
     self.fgMask:SetPoint(self.align1, self, self.align1)
     self.fgMask:SetPoint(self.align2, self, self.align2)
 
-    self.spark:SetPoint("CENTER", self.fgMask, self.alignSpark, self.spark.sparkOffsetX or 0, self.spark.sparkOffsetY or 0);
+    if self.activeMask == "secret" then
+      self.spark:SetPoint("CENTER", self.fgMaskSecret, self.alignSpark, self.spark.sparkOffsetX or 0, self.spark.sparkOffsetY or 0);
+    else
+      self.spark:SetPoint("CENTER", self.fgMask, self.alignSpark, self.spark.sparkOffsetX or 0, self.spark.sparkOffsetY or 0);
+    end
 
     local sparkMirror = self.spark.sparkMirror;
     local sparkRotationMode = self.spark.sparkRotationMode;
@@ -312,7 +316,7 @@ local barPrototype = {
   end,
 
   ["UpdateProgress"] = function(self)
-    if self:GetParent().activeMask == "secret" then
+    if self.activeMask == "secret" then
       return
     end
     -- Limit values
@@ -917,23 +921,32 @@ local funcs = {
     end
   end,
   UseNormalMask = function(self)
-    if self.activeMask == "normal" then
+    if self.bar.activeMask == "normal" then
       return
     end
     self.bar.fg:RemoveMaskTexture(self.bar.fgMaskSecret)
     self.bar.fg:AddMaskTexture(self.bar.fgMask)
     self.bar.fg:Show()
-    self.activeMask = "normal"
+    self.bar.activeMask = "normal"
+    self.bar:UpdateAnchors()
   end,
   UseSecretMask = function(self)
-    if self.activeMask == "secret" then
+    if self.bar.activeMask == "secret" then
       return
     end
     self.bar:ResetSmoothedValue()
     self.bar.fg:AddMaskTexture(self.bar.fgMaskSecret)
     self.bar.fg:RemoveMaskTexture(self.bar.fgMask)
     self.bar.fg:Show()
-    self.activeMask = "secret"
+    self.bar.activeMask = "secret"
+    self.bar:UpdateAnchors()
+    -- as we cant calculate progress to decide if we should show spark
+    -- we always show it if progress is secret and spark is enabled
+    if self.bar.spark.sparkHidden == "ALWAYS" then
+      self.bar.spark:Hide()
+    else
+      self.bar.spark:Show()
+    end
   end,
   UpdateSecretMaskInverse = function(self, force)
     -- if we want to set reversed progress for secret values we have to play with mask anchoring
