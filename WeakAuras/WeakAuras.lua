@@ -3586,8 +3586,13 @@ function Private.HandleChatAction(message_type, message, message_dest, message_d
     if not Private.SquelchingActions() then
       pcall(function()
         local voice = TextToSpeech_GetSelectedVoice(Enum.TtsVoiceType.Standard)
-        if not voice then return end
-        TextToSpeech_Speak(message, voice)
+        C_VoiceChat.SpeakText(
+          voice and voice.voiceID or 0,
+          message,
+          C_TTSSettings.GetSpeechRate(),
+          C_TTSSettings.GetSpeechVolume(),
+          false
+        );
       end)
     end
   elseif message_type == "ERROR" then
