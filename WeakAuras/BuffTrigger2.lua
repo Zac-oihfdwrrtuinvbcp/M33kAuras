@@ -253,8 +253,8 @@ local function ScanMatchData(time, triggerInfo, unit, filter)
   if matchData[unit] and matchData[unit][filter] then
     for index, match in pairs(matchData[unit][filter]) do
       if (not triggerInfo.auranames and not triggerInfo.auraspellids)
-          or (triggerInfo.auranames and tContains(triggerInfo.auranames, match.name))
-          or (triggerInfo.auraspellids and tContains(triggerInfo.auraspellids, match.spellId)) then
+          or (triggerInfo.auranames and not issecretvalue(match.name) and tContains(triggerInfo.auranames, match.name))
+          or (triggerInfo.auraspellids and not issecretvalue(match.spellId) and tContains(triggerInfo.auraspellids, match.spellId)) then
         if triggerInfo.fetchTooltip then
           matchData[unit][filter][index]:UpdateTooltip(time)
         end
@@ -481,10 +481,10 @@ local function UpdateMatchData(time, matchDataChanged, unit, index, auraInstance
       expirationTime = expirationTime,
       modRate = modRate,
       unitCaster = unitCaster,
-      casterName = unitCaster and GetUnitName(unitCaster, false) or "",
+      casterName = unitCaster and UnitName(unitCaster) or "",
       spellId = spellId,
       unit = unit,
-      unitName = GetUnitName(unit, false) or "",
+      unitName = UnitName(unit) or "",
       isStealable = isStealable,
       isBossDebuff = isBossDebuff,
       isCastByPlayer = isCastByPlayer,
@@ -549,7 +549,7 @@ local function UpdateMatchData(time, matchDataChanged, unit, index, auraInstance
     changed = true
   end
 
-  local casterName = unitCaster and GetUnitName(unitCaster, false) or ""
+  local casterName = unitCaster and UnitName(unitCaster) or ""
   if data.casterName ~= casterName then
     data.casterName = casterName
     changed = true
@@ -575,7 +575,7 @@ local function UpdateMatchData(time, matchDataChanged, unit, index, auraInstance
     changed = true
   end
 
-  local unitName = GetUnitName(unit, false) or ""
+  local unitName = UnitName(unit) or ""
   if data.unitName ~= unitName then
     data.unitName = unitName
     changed = true
@@ -1012,7 +1012,7 @@ local function UpdateStateWithNoMatch(time, triggerStates, triggerInfo, cloneId,
       role = role,
       raidMark = raidMark,
       roleIcon = role and roleIcons[role],
-      unitName = unit and GetUnitName(unit, false) or "",
+      unitName = unit and UnitName(unit) or "",
       destName = "",
       name = fallbackName,
       icon = fallbackIcon,
@@ -1096,7 +1096,7 @@ local function UpdateStateWithNoMatch(time, triggerStates, triggerInfo, cloneId,
       changed = true
     end
 
-    local unitName = unit and GetUnitName(unit, false) or ""
+    local unitName = unit and UnitName(unit) or ""
     if state.unitName ~= unitName then
       state.unitName = unitName
       changed = true
@@ -1477,10 +1477,10 @@ local function FormatAffectedUnaffected(triggerInfo, matchedUnits)
   for unit in GetAllUnits(triggerInfo.unit, nil, triggerInfo.includePets) do
     if activeGroupScanFuncs[unit] and activeGroupScanFuncs[unit][triggerInfo] then
       if matchedUnits[unit] then
-        affected = affected .. (GetUnitName(unit, false) or unit) .. ", "
+        affected = affected .. (UnitName(unit) or unit) .. ", "
         tinsert(affectedUnits, unit)
       else
-        unaffected = unaffected .. (GetUnitName(unit, false) or unit) .. ", "
+        unaffected = unaffected .. (UnitName(unit) or unit) .. ", "
         tinsert(unaffectedUnits, unit)
       end
     end
@@ -4092,13 +4092,13 @@ local function AugmentMatchDataMultiWith(matchData, unit, name, icon, stacks, de
     changed = true
   end
 
-  local casterName = GetUnitName(unitCaster, false) or ""
+  local casterName = UnitName(unitCaster) or ""
   if matchData.casterName ~= casterName then
     matchData.casterName = casterName
     changed = true
   end
 
-  local unitName = GetUnitName(unit, false) or ""
+  local unitName = UnitName(unit) or ""
   if matchData.unitName ~= unitName then
     matchData.unitName = unitName
     changed = true
