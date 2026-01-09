@@ -1268,7 +1268,14 @@ local function CheckForPreviousEncounter()
 end
 
 function Private.Login(takeNewSnapshots)
-  local loginThread = coroutine.create(function()
+  local loginFunc = (function() -- coroutine.create
+    -- while Private.AsyncEnvironment.EXECUTION_TIME < 10000 do
+    --   local start = debugprofilestop()
+    --   while debugprofilestop() - start < 0.5 do
+    --   end
+    --   coroutine.yield(100)
+    -- end
+
     Private.Pause();
     coroutine.yield(100)
     if db.history then
@@ -1335,7 +1342,17 @@ function Private.Login(takeNewSnapshots)
     end
   end)
 
-  Private.Threads:Immediate('login', loginThread, 15000, 1000)
+  local loginThreadConfig = {
+    maxTime = 16,
+    maxTimeCombat = 3,
+    name = "login",
+    -- debug = true,
+  }
+
+  local thread = Private:Async(loginThreadConfig, loginFunc)
+  if not IsInInstance() and not InCombatLockdown() then
+    thread:ForceRun(1000)
+  end
 end
 
 local WeakAurasFrame = CreateFrame("Frame", "WeakAurasFrame", UIParent);
@@ -2424,7 +2441,7 @@ function Private.NeedToRepairDatabase()
 end
 
 local function RepairDatabase()
-  local coro = coroutine.create(function()
+  local func = (function()
     Private.SetImporting(true)
     -- set db version to current code version
     db.dbVersion = WeakAuras.InternalVersion()
@@ -2444,7 +2461,8 @@ local function RepairDatabase()
     -- finally, login
     Private.Login()
   end)
-  Private.Threads:Add("repair", coro, 'urgent')
+  Private:Async({name = "repair"}, func)
+
 end
 
 StaticPopupDialogs["WEAKAURAS_CONFIRM_REPAIR"] = {
@@ -2703,14 +2721,14 @@ function Private.AddMany(tbl, takeSnapshots)
       coroutine.yield(200, "addmany prepare snapshot")
     end
     if #order > 0 then
-      Private.Threads:Add("snapshot", coroutine.create(function()
+      Private:Async({name = "snapshot"}, function()
         prettyPrint(L["WeakAuras is creating a rollback snapshot of your auras. This snapshot will allow you to revert to the current state of your auras if something goes wrong. This process may cause your framerate to drop until it is complete."])
         for uid, data in pairs(copies) do
           Private.SetMigrationSnapshot(uid, data)
           coroutine.yield(200, "snapshot")
         end
         prettyPrint(L["Rollback snapshot is complete. Thank you for your patience!"])
-      end), 'normal')
+      end)
     else
       if next(WeakAuras.LoadFromArchive("Repository", "migration").stores) ~= nil then
         C_Timer.After(1, function()
@@ -4637,8 +4655,8 @@ do
   threads.frame:Hide();
   threads.frame:SetScript("OnUpdate", function()
     local start = debugprofilestop();
-    runThreadPool(threads.pools.urgent, start + 15000, 1000)
-    runThreadPool(threads.pools.normal, start + 20, 1)
+    runThreadPool(threads.pools.urgent, start + 40, 1)
+    runThreadPool(threads.pools.normal, start + 10, 1)
     runThreadPool(threads.pools.background, start + 2, 0.5)
   end);
   threads.frame:RegisterEvent("PLAYER_REGEN_ENABLED")

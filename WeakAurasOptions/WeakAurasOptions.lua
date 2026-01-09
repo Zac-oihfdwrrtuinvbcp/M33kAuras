@@ -766,12 +766,10 @@ local function LayoutDisplayButtons(msg)
       coroutine.yield();
     end
 
-    local co2 = coroutine.create(func2);
-    OptionsPrivate.Private.Threads:Add("LayoutDisplayButtons2", co2);
+   OptionsPrivate.Private:Async({name = "LayoutDisplayButtons2"}, func2)
   end
 
-  local co1 = coroutine.create(func1);
-  OptionsPrivate.Private.Threads:Add("LayoutDisplayButtons1", co1);
+  OptionsPrivate.Private:Async({name = "LayoutDisplayButtons1"}, func1)
 end
 
 function OptionsPrivate.DeleteAuras(auras, parents)
@@ -819,8 +817,7 @@ function OptionsPrivate.DeleteAuras(auras, parents)
     frame:SetLoadProgressVisible(false)
   end
 
-  local co1 = coroutine.create(func1)
-  OptionsPrivate.Private.Threads:Add("Deleting Auras", co1)
+  OptionsPrivate.Private:Async({name = "Deleting Auras"}, func1)
 end
 
 function WeakAuras.ShowOptions(msg)
@@ -1605,8 +1602,7 @@ function OptionsPrivate.Drop(mainAura, target, action, area)
     WeakAuras.FillOptions()
   end
 
-  local co1 = coroutine.create(func1)
-  OptionsPrivate.Private.Threads:Add("Dropping Auras", co1)
+  OptionsPrivate.Private:Async({name = "Dropping Auras"}, func1)
 end
 
 function OptionsPrivate.StartDrag(mainAura)

@@ -1639,17 +1639,17 @@ local methods = {
           self.text:SetFontObject(GameFontNormal)
         end,
         OnAccept = function()
-          OptionsPrivate.Private.Threads:Add("import", coroutine.create(function()
+          OptionsPrivate.Private:Async({name = "import"}, function()
             self:ImportImpl()
-          end))
+          end)
         end,
       }
       StaticPopup_Show("WEAKAURAS_CONFIRM_IMPORT_HARDCORE")
       return
     end
-    OptionsPrivate.Private.Threads:Add("import", coroutine.create(function()
+    OptionsPrivate.Private:Async({name = "import"}, function()
       self:ImportImpl()
-    end))
+    end)
   end,
   ImportImpl = function(self)
     local pendingData = self.pendingData
@@ -1854,12 +1854,13 @@ local methods = {
       OptionsPrivate.ClearPicks()
       WeakAuras.PickDisplay(pendingPickData.id, pendingPickData.tabToShow)
     end
-    OptionsPrivate.Private.Threads:Add("history_update", coroutine.create(function()
+
+    OptionsPrivate.Private:Async({maxTime = 2, maxTimeCombat = 2}, function()
       for _, copy in ipairs(copies) do
         OptionsPrivate.Private.SetHistory(copy.uid, copy.data, copy.source)
         coroutine.yield()
       end
-    end), "background")
+    end)
   end,
   -- This ensures that the id that we are adding is either
   --  same for existing uids

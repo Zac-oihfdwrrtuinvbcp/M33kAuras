@@ -30,6 +30,7 @@ Libs\LibDispel\LibDispel.lua
 BackdropTemplateWeakAuras.xml
 
 Init.lua
+Async.lua
 Compatibility.lua
 locales.xml
 ArchiveTypes\Repository.lua
