@@ -6518,7 +6518,12 @@ Private.event_prototypes = {
         if WeakAuras.IsRetail() and itemName then
           reagentQuality = C_TradeSkillUI.GetItemReagentQualityByItemInfo(itemName)
           if reagentQuality then
-            reagentQualityTexture = CreateAtlasMarkupWithAtlasSize("Professions-Icon-Quality-Tier" .. reagentQuality .. "-Small")
+            local expansionID = select(15, C_Item.GetItemInfo(itemName))
+            if expansionID == 11 then
+              reagentQualityTexture = CreateAtlasMarkupWithAtlasSize("Professions-Icon-Quality-12-Tier" .. reagentQuality .. "-Small")
+            else
+              reagentQualityTexture = CreateAtlasMarkupWithAtlasSize("Professions-Icon-Quality-Tier" .. reagentQuality .. "-Small")
+            end
           end
         end
       ]];
