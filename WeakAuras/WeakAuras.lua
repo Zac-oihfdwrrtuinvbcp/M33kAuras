@@ -1340,6 +1340,7 @@ function Private.Login(takeNewSnapshots)
         coroutine.yield(500, "login delayed region actions");
       end
     end
+    -- print("WA LOGIN:", Private.AsyncEnvironment.EXECUTION_TIME, Private.AsyncEnvironment.TOTAL_TIME)
   end)
 
   local loginThreadConfig = {
@@ -1350,9 +1351,7 @@ function Private.Login(takeNewSnapshots)
   }
 
   local thread = Private:Async(loginThreadConfig, loginFunc)
-  if not IsInInstance() and not InCombatLockdown() then
-    thread:ForceRun(1000)
-  end
+  thread:ForceRun(12000)
 end
 
 local WeakAurasFrame = CreateFrame("Frame", "WeakAurasFrame", UIParent);
