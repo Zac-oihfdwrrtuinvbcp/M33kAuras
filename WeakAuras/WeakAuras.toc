@@ -26,7 +26,6 @@ Libs\TaintLess\TaintLess.xml
 
 # Client flavor specific libs
 Libs\LibSpecialization\LibSpecialization.lua
-Libs\LibDispel\LibDispel.lua
 BackdropTemplateWeakAuras.xml
 
 Init.lua
