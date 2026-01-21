@@ -11141,7 +11141,11 @@ Private.dynamic_texts = {
   },
   ["s"] = {
     get = function(state)
-      if not state or issecretvalue(state.stacks) or state.stacks == 0 then return "" end
+      local stacks = state and state.stacks
+      if type(stacks) == "number" and issecretvalue(stacks) then
+        return C_StringUtil.TruncateWhenZero(stacks)
+      end
+      if not state or state.stacks == 0 then return "" end
       return state.stacks
     end,
     func = function(v)
