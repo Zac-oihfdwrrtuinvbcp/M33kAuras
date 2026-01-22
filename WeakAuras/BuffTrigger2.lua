@@ -1371,28 +1371,43 @@ local function TriggerInfoApplies(triggerInfo, unit)
     controllingUnit = WeakAuras.petUnitToUnit[unit]
   end
 
-  if triggerInfo.ignoreSelf and UnitIsUnit("player", controllingUnit) then
+  if triggerInfo.ignoreSelf and Private.ExecEnv.UnitIsUnit("player", controllingUnit) then
     return false
   end
 
-  if triggerInfo.ignoreDead and UnitIsDeadOrGhost(unit) then
-    return false
+  if triggerInfo.ignoreDead then
+    local isDead = UnitIsDeadOrGhost(controllingUnit)
+    if not issecretvalue(isDead) and isDead then
+      return false
+    end
   end
 
-  if triggerInfo.ignoreDisconnected and not UnitIsConnected(unit) then
-    return false
+  if triggerInfo.ignoreDisconnected then
+    local isConnected = UnitIsConnected(controllingUnit)
+    if not issecretvalue(isConnected) and not isConnected then
+      return false
+    end
   end
 
-  if triggerInfo.ignoreInvisible and not UnitIsVisibleFixed(unit) then
-    return false
+  if triggerInfo.ignoreInvisible then
+    local isVisible = UnitIsVisibleFixed(unit)
+    if not issecretvalue(isVisible) and not isVisible then
+      return false
+    end
   end
 
-  if triggerInfo.groupRole and not triggerInfo.groupRole[UnitGroupRolesAssigned(controllingUnit) or ""] then
-    return false
+  if triggerInfo.groupRole then
+    local groupRole = UnitGroupRolesAssigned(controllingUnit)
+    if not issecretvalue(groupRole) and not triggerInfo.groupRole[groupRole or ""] then
+      return false
+    end
   end
 
-  if triggerInfo.raidRole and not triggerInfo.raidRole[WeakAuras.UnitRaidRole(controllingUnit) or ""] then
-    return false
+  if triggerInfo.raidRole then
+    local raidRole = WeakAuras.UnitRaidRole(controllingUnit)
+    if not issecretvalue(raidRole) and not triggerInfo.raidRole[raidRole or ""] then
+      return false
+    end
   end
 
   if triggerInfo.specId then
@@ -1449,7 +1464,7 @@ local function TriggerInfoApplies(triggerInfo, unit)
     return false
   end
 
-  if triggerInfo.npcId and not triggerInfo.npcId:Check(select(6, strsplit('-', UnitGUID(unit) or ''))) then
+  if triggerInfo.npcId and not triggerInfo.npcId:Check(UnitCreatureID(unit) or '') then
     return false
   end
 

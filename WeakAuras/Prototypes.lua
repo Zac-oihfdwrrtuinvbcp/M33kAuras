@@ -955,7 +955,7 @@ Private.tinySecondFormat = function(value)
 end
 
 function Private.ExecEnv.ParseStringCheck(input)
-  if not input then return end
+  if not input or issecretvalue(input) then return end
   local matcher = {
     entries = {},
     negativeEntries = {},
@@ -963,15 +963,19 @@ function Private.ExecEnv.ParseStringCheck(input)
       return false
     end,
     CheckBoth = function(self, e)
+      if issecretvalue(e) then return false end
       return self.entries[e] and not self.negativeEntries[e]
     end,
     CheckPositive = function(self, e)
+      if issecretvalue(e) then return false end
       return self.entries[e]
     end,
     CheckNegative = function(self, e)
+      if issecretvalue(e) then return false end
       return not self.negativeEntries[e]
     end,
     Add = function(self, e, negate)
+      if issecretvalue(e) then return false end
       if negate then
         self.negativeEntries[e] = true
       else
