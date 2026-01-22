@@ -186,59 +186,6 @@ timeFormatter.GetMaxInterval = function(self)
 end
 
 local AbbreviateNumbers = AbbreviateNumbers
-local gameLocale = GetLocale()
-if gameLocale == "koKR" or gameLocale == "zhCN" or gameLocale == "zhTW" then
-  -- Work around https://github.com/Stanzilla/WoWUIBugs/issues/515
-  --
-  local NUMBER_ABBREVIATION_DATA_FIXED={
-    [1]={
-      breakpoint = 10000 * 10000,
-      significandDivisor = 10000 * 10000,
-      abbreviation = SECOND_NUMBER_CAP_NO_SPACE,
-      fractionDivisor = 1
-    },
-    [2]={
-      breakpoint = 1000 * 10000,
-      significandDivisor = 1000 * 10000,
-      abbreviation = SECOND_NUMBER_CAP_NO_SPACE,
-      fractionDivisor = 10
-    },
-    [3]={
-      breakpoint = 10000,
-      significandDivisor = 1000,
-      abbreviation = FIRST_NUMBER_CAP_NO_SPACE,
-      fractionDivisor = 10
-    }
-  }
-
-  AbbreviateNumbers = function(value)
-    for i, data in ipairs(NUMBER_ABBREVIATION_DATA_FIXED) do
-      if value >= data.breakpoint then
-              local finalValue = math.floor(value / data.significandDivisor) / data.fractionDivisor;
-              return finalValue .. data.abbreviation;
-      end
-    end
-    return tostring(value);
-  end
-elseif WeakAuras.IsClassicOrWrathOrCataOrMists() then
-  local NUMBER_ABBREVIATION_DATA_FIXED = {
-        -- Work around another bug in NUMBER_ABBREVIATION_DATA, https://github.com/WeakAuras/WeakAuras2/issues/6061
-        { breakpoint = 10000000,        abbreviation = SECOND_NUMBER_CAP_NO_SPACE,      significandDivisor = 1000000,   fractionDivisor = 1 },
-        { breakpoint = 1000000,         abbreviation = SECOND_NUMBER_CAP_NO_SPACE,      significandDivisor = 100000,            fractionDivisor = 10 },
-        { breakpoint = 10000,           abbreviation = FIRST_NUMBER_CAP_NO_SPACE,       significandDivisor = 1000,              fractionDivisor = 1 },
-        { breakpoint = 1000,            abbreviation = FIRST_NUMBER_CAP_NO_SPACE,       significandDivisor = 100,               fractionDivisor = 10 }
-  }
-
-  AbbreviateNumbers = function(value)
-    for i, data in ipairs(NUMBER_ABBREVIATION_DATA_FIXED) do
-      if value >= data.breakpoint then
-              local finalValue = math.floor(value / data.significandDivisor) / data.fractionDivisor;
-              return finalValue .. data.abbreviation;
-      end
-    end
-    return tostring(value);
-  end
-end
 
 local simpleFormatters = {
   AbbreviateNumbers = function(value)
@@ -247,22 +194,49 @@ local simpleFormatters = {
   end,
   AbbreviateLargeNumbers = function(value)
     if type(value) == "string" and not issecretvalue(value) then value = tonumber(value) end
-    return (type(value) == "number") and AbbreviateLargeNumbers(Round(value)) or value
+    return (type(value) == "number") and AbbreviateLargeNumbers(value) or value
   end,
   BreakUpLargeNumbers = function(value)
     if type(value) == "string" and not issecretvalue(value) then value = tonumber(value) end
     return (type(value) == "number") and BreakUpLargeNumbers(value) or value
   end,
   floor = function(value)
-    if type(value) == "string" and not issecretvalue(value) then value = tonumber(value) end
+    if issecretvalue(value) then
+      if type(value) == "number" then
+        return string.format("%d", value)
+      elseif type(value) == "string" then
+        return value
+      else
+        return ""
+      end
+    end
+    if type(value) == "string" then value = tonumber(value) end
     return (type(value) == "number") and floor(value) or value
   end,
   ceil = function(value)
-    if type(value) == "string" and not issecretvalue(value) then value = tonumber(value) end
+    if issecretvalue(value) then
+      if type(value) == "number" then
+        return string.format("%d", value)
+      elseif type(value) == "string" then
+        return value
+      else
+        return ""
+      end
+    end
+    if type(value) == "string" then value = tonumber(value) end
     return (type(value) == "number") and ceil(value) or value
   end,
   round = function(value)
-    if type(value) == "string" and not issecretvalue(value) then value = tonumber(value) end
+    if issecretvalue(value) then
+      if type(value) == "number" then
+        return string.format("%d", value)
+      elseif type(value) == "string" then
+        return value
+      else
+        return ""
+      end
+    end
+    if type(value) == "string" then value = tonumber(value) end
     return (type(value) == "number") and Round(value) or value
   end,
   time = {
