@@ -571,6 +571,11 @@ local function modify(parent, region, data)
       if hasanysecretvalues(self.value, self.total) then
         return
       end
+
+      -- reset timed values
+      cooldown.expirationTime = nil
+      cooldown.duration = nil
+
       cooldown.value = self.value
       cooldown.total = self.total
       cooldown.modRate = nil
@@ -606,10 +611,17 @@ local function modify(parent, region, data)
       end
     end
     function region:UpdateDuration()
+      cooldown:Show()
+      cooldown:Resume()
       local durationObject = self.durationObject
       cooldown.inverse = self.inverse
-      cooldown:Resume()
-      cooldown:SetCooldownFromDurationObject(durationObject)
+
+      -- reset timed values
+      cooldown.expirationTime = nil
+      cooldown.duration = nil
+
+      region:UpdateEffectiveInverse()
+      cooldown:SetCooldownFromDurationObject(durationObject, true)
     end
 
     function region:PreShow()
