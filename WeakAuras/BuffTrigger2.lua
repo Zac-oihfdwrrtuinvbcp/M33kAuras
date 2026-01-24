@@ -642,7 +642,7 @@ local function FindBestMatchData(time, id, triggernum, triggerInfo, matchedUnits
     for index, auraData in pairs(unitData) do
       local remCheck = true
       if triggerInfo.remainingFunc and auraData.expirationTime then
-        if auraData.duration == 0 then
+        if issecretvalue(auraData.expirationTime) or auraData.duration == 0 then
           remCheck = false
         else
           local modRate = auraData.modRate or 1
@@ -654,7 +654,7 @@ local function FindBestMatchData(time, id, triggernum, triggerInfo, matchedUnits
 
       if remCheck then
         matchCount = matchCount + 1
-        stackCount = stackCount + (auraData.stacks or 0)
+        stackCount = stackCount + (not issecretvalue(auraData.stacks) and auraData.stacks or 0)
         matchedUnits[unit] = true
         if not unitCounted then
           unitCount = unitCount + 1
@@ -683,7 +683,7 @@ local function FindBestMatchDataForUnit(time, id, triggernum, triggerInfo, unit)
   for index, auraData in pairs(matchDataByTrigger[id][triggernum][unit]) do
     local remCheck = true
     if triggerInfo.remainingFunc and auraData.expirationTime then
-      if auraData.expirationTime == 0 then
+      if issecretvalue(auraData.expirationTime) or auraData.expirationTime == 0 then
         remCheck = false
       else
         local modRate = auraData.modRate or 1
@@ -695,7 +695,7 @@ local function FindBestMatchDataForUnit(time, id, triggernum, triggerInfo, unit)
 
     if remCheck then
       matchCount = matchCount + 1
-      stackCount = stackCount + (auraData.stacks or 0)
+      stackCount = stackCount + (not issecretvalue(auraData.stacks) and auraData.stacks or 0)
       if not bestMatch or triggerInfo.compareFunc(bestMatch, auraData) then
         bestMatch = auraData
       end
