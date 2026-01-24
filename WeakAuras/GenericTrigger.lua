@@ -2302,45 +2302,48 @@ do
               -- For the new effective spell id
               self:AddEffectiveSpellId(newEffectiveSpellId, userSpellId)
 
-              local oldSpellDetail = self.data[oldEffectiveSpellId] or {}
-              local newSpellDetail = self.data[newEffectiveSpellId] or {}
+              local oldSpellDetail = self.data[oldEffectiveSpellId]
+              local newSpellDetail = self.data[newEffectiveSpellId]
+              if oldSpellDetail and newSpellDetail then
 
-              -- Check whether we need to emit the SPELL_CHARGES_CHANGED or SPELL_COOLDOWN_READY events
-              local chargesChanged = oldSpellDetail.charges ~= newSpellDetail.charges or oldSpellDetail.count ~= newSpellDetail.count
-                or oldSpellDetail.chargesMax ~= newSpellDetail.maxCharges
-              local oldCharge = oldSpellDetail.charges or oldSpellDetail.count or 0
-              local newCharge = newSpellDetail.charges or newSpellDetail.count or 0
-              local chargesDifference = 0
-              if not hasanysecretvalues(oldCharge, newCharge) then
-                chargesDifference = newCharge - oldCharge
-              end
 
-              local nowReady = not self.spellCdsOnlyCooldown.readyTime[oldEffectiveSpellId]
-                               and self.spellCdsOnlyCooldown.readyTime[newEffectiveSpellId]
-
-              -- For the old effective spell id
-              -- * Remove the spell from watched
-              -- * If we removed the last mapping, remove the spell details of the effective spell id
-              if oldSpellDetail.watched[userSpellId] == 1 then
-                oldSpellDetail.watched[userSpellId] = nil
-                if next(self.data[oldEffectiveSpellId].watched) == nil then
-                  self.data[oldEffectiveSpellId] = nil
-                  RecheckHandles:Cancel(oldEffectiveSpellId)
+                -- Check whether we need to emit the SPELL_CHARGES_CHANGED or SPELL_COOLDOWN_READY events
+                local chargesChanged = oldSpellDetail.charges ~= newSpellDetail.charges or oldSpellDetail.count ~= newSpellDetail.count
+                  or oldSpellDetail.chargesMax ~= newSpellDetail.maxCharges
+                local oldCharge = oldSpellDetail.charges or oldSpellDetail.count or 0
+                local newCharge = newSpellDetail.charges or newSpellDetail.count or 0
+                local chargesDifference = 0
+                if not hasanysecretvalues(oldCharge, newCharge) then
+                  chargesDifference = newCharge - oldCharge
                 end
-              else
-                oldSpellDetail.watched[userSpellId] = oldSpellDetail.watched[userSpellId] - 1
-              end
 
-              -- Finally update the watchedSpellIds mapping
-              self.watchedSpellIds[userSpellId][useExact][followoverride] = newEffectiveSpellId
+                local nowReady = not self.spellCdsOnlyCooldown.readyTime[oldEffectiveSpellId]
+                and self.spellCdsOnlyCooldown.readyTime[newEffectiveSpellId]
 
-              -- We only send events for the userSpellId, since only those get remapped
-              Private.ScanEventsByID("SPELL_COOLDOWN_CHANGED", userSpellId, newEffectiveSpellId)
-              if nowReady then
-                Private.ScanEventsByID("SPELL_COOLDOWN_READY", userSpellId, newEffectiveSpellId)
-              end
-              if chargesChanged ~= 0 then
-                Private.ScanEventsByID("SPELL_CHARGES_CHANGED", userSpellId, newEffectiveSpellId, chargesDifference, newCharge)
+                -- For the old effective spell id
+                -- * Remove the spell from watched
+                -- * If we removed the last mapping, remove the spell details of the effective spell id
+                if oldSpellDetail.watched[userSpellId] == 1 then
+                  oldSpellDetail.watched[userSpellId] = nil
+                  if next(self.data[oldEffectiveSpellId].watched) == nil then
+                    self.data[oldEffectiveSpellId] = nil
+                    RecheckHandles:Cancel(oldEffectiveSpellId)
+                  end
+                else
+                  oldSpellDetail.watched[userSpellId] = oldSpellDetail.watched[userSpellId] - 1
+                end
+
+                -- Finally update the watchedSpellIds mapping
+                self.watchedSpellIds[userSpellId][useExact][followoverride] = newEffectiveSpellId
+
+                -- We only send events for the userSpellId, since only those get remapped
+                Private.ScanEventsByID("SPELL_COOLDOWN_CHANGED", userSpellId, newEffectiveSpellId)
+                if nowReady then
+                  Private.ScanEventsByID("SPELL_COOLDOWN_READY", userSpellId, newEffectiveSpellId)
+                end
+                if chargesChanged ~= 0 then
+                  Private.ScanEventsByID("SPELL_CHARGES_CHANGED", userSpellId, newEffectiveSpellId, chargesDifference, newCharge)
+                end
               end
             end
           end
