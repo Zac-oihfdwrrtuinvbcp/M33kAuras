@@ -4348,7 +4348,7 @@ function M33Auras.GetAuraInstanceTooltipInfo(unit, auraInstanceId, filter)
     if not tooltipData then
       return nil, "", "none", 0
     end
-    local secondLine = tooltipData.lines[2] -- This is the line we want
+    local secondLine = not issecretvalue(tooltipData.lines) and tooltipData.lines[2] -- This is the line we want
     if secondLine and secondLine.leftText then
       tooltipText = secondLine.leftText
     end
