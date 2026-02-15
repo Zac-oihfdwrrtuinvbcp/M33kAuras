@@ -3563,7 +3563,7 @@ Private.event_prototypes = {
         name = "percentpower",
         display = L["Power (%)"],
         type = "number",
-        init = "UnitPowerPercent(unit, powerType, false, CurveConstants.ScaleTo100)",
+        init = "powerType ~= 99 and UnitPowerPercent(unit, powerType, false, CurveConstants.ScaleTo100) or (not hasanysecretvalues(power, total) and total ~= 0 and (power / total) * 100 or nil)",
         store = true,
         conditionType = "number",
         multiEntry = {
@@ -3576,7 +3576,7 @@ Private.event_prototypes = {
         name = "deficit",
         display = L["Power Deficit"],
         type = "number",
-        init = "UnitPowerMissing(unit, powerType)",
+        init = "powerType ~= 99 and UnitPowerMissing(unit, powerType) or (not hasanysecretvalues(power, total) and total ~= 0 and (total - power) or nil)",
         store = true,
         conditionType = "number",
         multiEntry = {

@@ -1658,7 +1658,9 @@ function GenericTrigger.Add(data, region)
 
             prototype = event_prototypes[trigger.event]
             triggerFuncStr = ConstructFunction(prototype, trigger);
-
+            if data.id == "New 4" then
+              print(triggerFuncStr)
+            end
             statesParameter = prototype.statesParameter;
             triggerFunc = Private.LoadFunction(triggerFuncStr, id);
 
