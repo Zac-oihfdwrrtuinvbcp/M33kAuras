@@ -27,6 +27,7 @@ externals:
   M33kAuras/Libs/TaintLess:
     url: https://www.townlong-yak.com/addons.git/taintless
     commit: default
+  M33kAuras/Libs/LibAdvFlyable-1.1: https://github.com/Ghostopheles/LibAdvFlight
   M33kAurasOptions/Libs/AceConfig-3.0: https://repos.curseforge.com/wow/ace3/trunk/AceConfig-3.0
   M33kAurasOptions/Libs/AceGUI-3.0: https://repos.curseforge.com/wow/ace3/trunk/AceGUI-3.0
   M33kAurasOptions/Libs/AceGUI-3.0-SharedMediaWidgets: https://repos.curseforge.com/wow/ace-gui-3-0-shared-media-widgets/trunk/AceGUI-3.0-SharedMediaWidgets
