@@ -3109,13 +3109,16 @@ do
   -- for cooldown progress display, if charge is returned :IsZero will always be false
   ---@type fun(id): durationObject:userdata
   function M33kAuras.GetSpellCooldownDuration(id)
-    local charge = C_Spell.GetSpellChargeDuration(id)
     local cdInfo = C_Spell.GetSpellCooldown(id)
-    local cooldown
-    if cdInfo then
-      cooldown = C_Spell.GetSpellCooldownDuration(id)
+    local chargesInfo = C_Spell.GetSpellCharges(id)
+
+    if cdInfo and cdInfo.isActive then
+      return C_Spell.GetSpellCooldownDuration(id)
+    elseif chargesInfo and chargesInfo.isActive then
+      return C_Spell.GetSpellChargeDuration(id)
+    else
+      return cdInfo and C_Spell.GetSpellCooldownDuration(id) or C_Spell.GetSpellChargeDuration(id)
     end
-    return charge or cooldown
   end
 
   function M33kAuras.IsSpellReadyFromDuration(id)
