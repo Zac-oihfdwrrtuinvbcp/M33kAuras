@@ -30,6 +30,9 @@ Private.DebugLog = {
 }
 
 local function serialize(log, input)
+  if issecretvalue(input) then
+    input = "<Secret " .. type(input) .. ">"
+  end
   if type(input) == "table" then
     if log[#log] == "" then
       log[#log] = L["Dumping table"]
@@ -44,6 +47,11 @@ local function serialize(log, input)
     _G.DEFAULT_CHAT_FRAME = log
     DevTools_Dump(input)
     _G.DEFAULT_CHAT_FRAME = defaultChatFrame
+    -- we may want to see which keys table has but it requires to
+    -- make own serializer and I'm not feeling like it right now
+    if issecretvalue(log[#log]) then
+      log[#log] = L["<Dump is secret string>"]
+    end
     tinsert(log, "")
   else
     if log[#log] == "" then
@@ -82,7 +90,7 @@ function Private.DebugLog.Print(uid, text, ...)
   end
 end
 
---- Adds a message to the debug log
+--- Adds a message to the debug log, this one makes us friends with DevTools_Dump
 ---@param self any
 ---@param msg string
 local function AddMessage(self, msg)
