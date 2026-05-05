@@ -4302,6 +4302,7 @@ end
 if M33kAuras.IsCataOrMistsOrRetail() then
   Private.LibSpecWrapper.Register(function(unit)
     Private.ScanEvents("UNIT_SPEC_CHANGED_" .. unit, unit)
+    M33kAuras.ScanEvents("UNIT_SPEC_CHANGED", unit)
   end)
 end
 
