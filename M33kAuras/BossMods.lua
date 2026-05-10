@@ -1898,4 +1898,23 @@ Private.event_prototypes["Boss Mod Timer"] = {
 }
 Private.category_event_prototype.addons["Boss Mod Timer"] = L["Boss Mod Timer"]
 
+function M33kAuras.IsBossModEnabled(encounterID) end
 
+if (BigWigsLoader) then
+  local enabledMods = {}
+  BigWigsLoader.RegisterMessage(M33kAuras, "BigWigs_OnBossEnable", function(_, module)
+    if module.engageId then
+      enabledMods[module.engageId] = true
+      Private.callbacks:Fire("WA_BOSSMOD_ENABLED_STATE_CHANGED")
+    end
+  end)
+  BigWigsLoader.RegisterMessage(M33kAuras, "BigWigs_OnBossDisable", function(_, module)
+    if module.engageId then
+      enabledMods[module.engageId] = nil
+      Private.callbacks:Fire("WA_BOSSMOD_ENABLED_STATE_CHANGED")
+    end
+  end)
+  function M33kAuras.IsBossModEnabled(encounterID)
+    return enabledMods[encounterID] == true
+  end
+end

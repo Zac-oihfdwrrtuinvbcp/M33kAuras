@@ -2078,6 +2078,17 @@ Private.load_prototype = {
       optional = true,
     },
     {
+      name = "enabledBossModID",
+      display = L["Enabled BossMod ID(BW Only)"],
+      type = "string",
+      multiline = true,
+      desc = Private.get_encounters_list,
+      preamble = "local bossModChecker = Private.ExecEnv.ParseBossModCheck(%q)",
+      test = "bossModChecker:Check()",
+      events = {"WA_BOSSMOD_ENABLED_STATE_CHANGED"},
+      optional = true,
+    },
+    {
       name = "size",
       display = L["Instance Size Type"],
       type = "multiselect",
