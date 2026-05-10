@@ -202,7 +202,7 @@ function Private.ExecEnv.UnitIsUnit(unit1, unit2)
 end
 
 function Private.ExecEnv.UnitName(unit)
-  if hasanysecretvalues(unit) or not unit then
+  if not unit then
     return nil
   end
   return UnitName(unit)
