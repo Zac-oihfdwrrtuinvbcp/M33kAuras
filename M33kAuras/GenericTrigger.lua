@@ -3121,8 +3121,23 @@ do
     end
   end
 
+  -- for cooldown progress display without the gcd e.g. in overlays
+  ---@type fun(id): durationObject:userdata
+  function M33kAuras.GetSpellCooldownDurationNoGCD(id)
+    local cdInfo = C_Spell.GetSpellCooldown(id)
+    local chargesInfo = C_Spell.GetSpellCharges(id)
+
+    if cdInfo and cdInfo.isActive then
+      return C_Spell.GetSpellCooldownDuration(id, true)
+    elseif chargesInfo and chargesInfo.isActive then
+      return C_Spell.GetSpellChargeDuration(id, true)
+    else
+      return cdInfo and C_Spell.GetSpellCooldownDuration(id, true) or C_Spell.GetSpellChargeDuration(id, true)
+    end
+  end
+
   function M33kAuras.IsSpellReadyFromDuration(id)
-    local durationObj = C_Spell.GetSpellCooldownDuration(id)
+    local durationObj = C_Spell.GetSpellCooldownDuration(id, true)
     if not durationObj then
       return nil
     end

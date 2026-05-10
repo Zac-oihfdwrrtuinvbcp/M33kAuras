@@ -4257,6 +4257,7 @@ Private.event_prototypes = {
           stacks = maxCharges and maxCharges ~= 1 and charges or (spellCount and spellCount > 0 and spellCount) or nil;
         end
         local durationObject = M33kAuras.GetSpellCooldownDuration(effectiveSpellId)
+        local durationObjectNoGCD = M33kAuras.GetSpellCooldownDurationNoGCD(effectiveSpellId)
         local isReady = M33kAuras.IsSpellReady(effectiveSpellId)
         if showlossofcontrol and startTime and duration then
           local locStart, locDuration = M33kAuras.GetSpellLossOfControlCooldown(spellname);
@@ -4316,7 +4317,7 @@ Private.event_prototypes = {
             state.modRate = modRate;
             state.changed = true;
           end
-          state.durationObject = durationObject;
+          state.durationObject = showgcd and durationObject or durationObjectNoGCD;
           if isSecret then
             state.changed = true;
             state.progressType = 'durationObject';
