@@ -6582,12 +6582,7 @@ function Private.ExecEnv.ParseBossModCheck(input)
   local matcher = {
     encounterIds = {},
     Check = function(self)
-      for encounterId in pairs(self.encounterIds) do
-        if M33kAuras.IsBossModEnabled(encounterId) then
-          return true
-        end
-      end
-      return false
+      return M33kAuras.IsBossModEnabled(self.encounterIds)
     end,
     AddEncounterId = function(self, encounterId)
       local id = tonumber(strtrim(encounterId))

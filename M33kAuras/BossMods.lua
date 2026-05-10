@@ -1898,23 +1898,32 @@ Private.event_prototypes["Boss Mod Timer"] = {
 }
 Private.category_event_prototype.addons["Boss Mod Timer"] = L["Boss Mod Timer"]
 
-function M33kAuras.IsBossModEnabled(encounterID) end
+function M33kAuras.IsBossModEnabled(encounterIDs) end
 
 if (BigWigsLoader) then
-  local enabledMods = {}
   BigWigsLoader.RegisterMessage(M33kAuras, "BigWigs_OnBossEnable", function(_, module)
     if module.engageId then
-      enabledMods[module.engageId] = true
       Private.callbacks:Fire("WA_BOSSMOD_ENABLED_STATE_CHANGED")
     end
   end)
   BigWigsLoader.RegisterMessage(M33kAuras, "BigWigs_OnBossDisable", function(_, module)
     if module.engageId then
-      enabledMods[module.engageId] = nil
       Private.callbacks:Fire("WA_BOSSMOD_ENABLED_STATE_CHANGED")
     end
   end)
-  function M33kAuras.IsBossModEnabled(encounterID)
-    return enabledMods[encounterID] == true
+  BigWigsLoader.RegisterMessage(M33kAuras, "BigWigs_CoreEnabled", function()
+    Private.callbacks:Fire("WA_BOSSMOD_ENABLED_STATE_CHANGED")
+  end)
+  BigWigsLoader.RegisterMessage(M33kAuras, "BigWigs_CoreDisabled", function()
+    Private.callbacks:Fire("WA_BOSSMOD_ENABLED_STATE_CHANGED")
+  end)
+  function M33kAuras.IsBossModEnabled(encounterIDs)
+    if BigWigs and BigWigs:IsEnabled() then
+      for modName, mod in BigWigs:IterateBossModules() do
+        if mod:IsEnabled() and mod.engageId and encounterIDs[mod.engageId] then
+          return true
+        end
+      end
+    end
   end
 end
