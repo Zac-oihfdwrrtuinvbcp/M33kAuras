@@ -3112,10 +3112,10 @@ do
     local cdInfo = C_Spell.GetSpellCooldown(id)
     local chargesInfo = C_Spell.GetSpellCharges(id)
 
-    if cdInfo and cdInfo.isActive then
-      return C_Spell.GetSpellCooldownDuration(id)
-    elseif chargesInfo and chargesInfo.isActive then
+    if chargesInfo and chargesInfo.isActive then
       return C_Spell.GetSpellChargeDuration(id)
+    elseif cdInfo and cdInfo.isActive then
+      return C_Spell.GetSpellCooldownDuration(id)
     else
       return cdInfo and C_Spell.GetSpellCooldownDuration(id) or C_Spell.GetSpellChargeDuration(id)
     end
