@@ -1,3 +1,4 @@
+if not M33kAuras.IsLibsOK() then return end
 ---@type string
 local AddonName = ...
 ---@class Private
@@ -1011,7 +1012,7 @@ local function CreateTalentCache()
         end
       end
     end
-  elseif M33kAuras.IsMists() then
+  elseif M33kAuras.IsMists() or M33kAuras.IsForever() then
     -- unused
   else
     local spec = GetSpecialization()

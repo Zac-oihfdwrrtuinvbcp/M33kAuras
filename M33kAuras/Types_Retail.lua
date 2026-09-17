@@ -11,6 +11,7 @@ local L = M33kAuras.L;
 local encounter_list = ""
 local zoneId_list = ""
 function Private.InitializeEncounterAndZoneLists()
+  if M33kAuras.IsForever() then return end
 	local currTier = EJ_GetCurrentTier()
   if encounter_list ~= "" then
     return

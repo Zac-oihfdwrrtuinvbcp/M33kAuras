@@ -2124,7 +2124,7 @@ if M33kAuras.IsCataOrMistsOrRetail() then
   local spec_frame = CreateFrame("Frame");
   spec_frame:RegisterEvent("PLAYER_LOGIN")
   spec_frame:SetScript("OnEvent", update_specs);
-else
+elseif M33kAuras.IsClassicEra() then
   for tab = 1, GetNumTalentTabs() do
     for num_talent = 1, GetNumTalents(tab) do
       local talentId = (tab - 1) * MAX_NUM_TALENTS + num_talent

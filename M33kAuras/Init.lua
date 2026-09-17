@@ -449,7 +449,7 @@ end
 
 ---@return boolean result
 function M33kAuras.IsRetail()
-  return flavor == 10
+  return M33kAuras.BuildInfo >= 120000
 end
 
 ---@return boolean result
@@ -529,6 +529,10 @@ end
 ---@return boolean result
 function M33kAuras.IsTWW()
   return M33kAuras.BuildInfo >= 110000
+end
+
+function M33kAuras.IsForever()
+  return M33kAuras.BuildInfo == 16001
 end
 
 ---@param ... string
@@ -615,10 +619,10 @@ function M33kAuras.IsLibsOK()
   return libsAreOk
 end
 
-if M33kAuras.BuildInfo < 120000 then
+if not (M33kAuras.IsForever() or M33kAuras.IsRetail()) then
   libsAreOk = false
   StaticPopupDialogs["M33kAuras_OUTDATED_CLIENT_MIDNIGHT"] = {
-    text = "This version of M33kAuras won't load on pre Midnight clients.",
+    text = "This version of M33kAuras only works on Forever or post Midnight clients.",
     button1 = OKAY,
     timeout = 0,
     whileDead = true,
