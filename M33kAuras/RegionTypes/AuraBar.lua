@@ -495,8 +495,10 @@ local barPrototype = {
           local direction, width, offset = additionalBar.direction, additionalBar.width, additionalBar.offset
           local durationObject, durationObjectUseRemaining = additionalBar.durationObject, additionalBar.durationObjectUseRemaining
 
-          abar.offsetBar1:SetMinMaxValues(self.additionalBarsMin, self.additionalBarsMax);
-          abar.offsetBar2:SetMinMaxValues(self.additionalBarsMin, self.additionalBarsMax);
+          local boundsMin = additionalBar.normalized and 0 or self.additionalBarsMin;
+          local boundsMax = additionalBar.normalized and 1 or self.additionalBarsMax;
+          abar.offsetBar1:SetMinMaxValues(boundsMin, boundsMax);
+          abar.offsetBar2:SetMinMaxValues(boundsMin, boundsMax);
 
           local effectiveReverseFill = self.directionInverse;
           if self.additionalBarsInverse then

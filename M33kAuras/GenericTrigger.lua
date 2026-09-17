@@ -492,16 +492,21 @@ local function RunOverlayFuncs(event, state, id, errorHandler)
       additionalProgress.offset = nil;
       additionalProgress.durationObject = nil;
       additionalProgress.durationObjectUseRemaining = nil;
+      additionalProgress.normalized = nil;
     elseif (type(a) == "string") then
+      if additionalProgress.normalized then
+        additionalProgress.normalized = nil;
+        changed = true;
+      end
       if (additionalProgress.direction ~= a) then
         additionalProgress.direction = a;
         changed = true;
       end
-      if (additionalProgress.width ~= b) then
+      if hasanysecretvalues(additionalProgress.width, b) or (additionalProgress.width ~= b) then
         additionalProgress.width = b;
         changed = true;
       end
-      if (additionalProgress.offset ~= c) then
+      if hasanysecretvalues(additionalProgress.offset, c) or (additionalProgress.offset ~= c) then
         additionalProgress.offset = c;
         changed = true;
       end
@@ -516,11 +521,18 @@ local function RunOverlayFuncs(event, state, id, errorHandler)
       additionalProgress.min = nil;
       additionalProgress.max = nil;
     else
-      if (additionalProgress.min ~= a) then
+      -- Numeric overlay bounds can be normalized to the full bar independently
+      -- of its (possibly secret) duration. The fifth result opts into this.
+      local normalized = e == true or nil;
+      if additionalProgress.normalized ~= normalized then
+        additionalProgress.normalized = normalized;
+        changed = true;
+      end
+      if hasanysecretvalues(additionalProgress.min, a) or (additionalProgress.min ~= a) then
         additionalProgress.min = a;
         changed = true;
       end
-      if (additionalProgress.max ~= b) then
+      if hasanysecretvalues(additionalProgress.max, b) or (additionalProgress.max ~= b) then
         additionalProgress.max = b;
         changed = true;
       end

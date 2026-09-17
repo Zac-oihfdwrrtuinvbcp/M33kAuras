@@ -461,6 +461,13 @@ local function UpdateProgressFromState(self, minMaxConfig, state, progressSource
     if self.UpdateDuration then
       self:UpdateDuration()
     end
+    if self.SetAdditionalProgress then
+      if useAdditionalProgress then
+        self:SetAdditionalProgress(state.additionalProgress, self.minProgress, self.maxProgress, inverse)
+      else
+        self:SetAdditionalProgress(nil)
+      end
+    end
   elseif progressType == "number" then
     local value = state[property]
     if type(value) ~= "number" then value = 0 end
