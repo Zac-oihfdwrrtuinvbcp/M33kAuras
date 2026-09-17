@@ -69,6 +69,10 @@ end
 local WA_Utf8Sub = function(input, size)
   local output = ""
   input = tostring(input)
+  -- Secret text can be displayed, but cannot be inspected for UTF-8 boundaries.
+  if issecretvalue(input) then
+    return input
+  end
   if type(input) ~= "string" then
     return output
   end
@@ -142,7 +146,7 @@ M33kAuras.WA_ClassColorName = WA_ClassColorName
 
 M33kAuras.PadString = function(input, padMode, padLength)
   input = tostring(input)
-  if type(input) ~= "string" then
+  if issecretvalue(input) or type(input) ~= "string" then
     return input
   end
 
