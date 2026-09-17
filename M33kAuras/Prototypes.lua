@@ -91,21 +91,20 @@ M33kAuras.UnitCastingInfo = UnitCastingInfo
 if M33kAuras.IsRetail() then
   local cacheEmpowered = {}
   M33kAuras.UnitChannelInfo = function(unit)
-    local name, text, texture, startTime, endTime, isTradeSkill, notInterruptible, spellID, _, numStages = UnitChannelInfo(unit)
+    local name, text, texture, startTime, endTime, isTradeSkill, notInterruptible, spellID, isEmpowered, numStages, castBarID = UnitChannelInfo(unit)
     if name == nil and cacheEmpowered[unit] then
       local holdAtMaxTime
-      holdAtMaxTime, name, text, texture, startTime, endTime, isTradeSkill, notInterruptible, spellID, _, numStages = unpack(cacheEmpowered[unit])
-      if endTime == nil
+      holdAtMaxTime, name, text, texture, startTime, endTime, isTradeSkill, notInterruptible, spellID, isEmpowered, numStages, castBarID = unpack(cacheEmpowered[unit])
+      if issecretvalue(name)
+      or endTime == nil
       or holdAtMaxTime == nil
-      or issecretvalue(holdAtMaxTime)
-      or issecretvalue(endTime)
-      or endTime + holdAtMaxTime < GetTime()
+      or (endTime + holdAtMaxTime) / 1000 < GetTime()
       then -- invalid or too old data
         cacheEmpowered[unit] = nil
         return nil
       end
     end
-    return name, text, texture, startTime, endTime, isTradeSkill, notInterruptible, spellID, _, numStages
+    return name, text, texture, startTime, endTime, isTradeSkill, notInterruptible, spellID, isEmpowered, numStages, castBarID
   end
   local cacheEmpoweredFrame = CreateFrame("Frame")
   cacheEmpoweredFrame:RegisterEvent("UNIT_SPELLCAST_EMPOWER_START")
@@ -142,6 +141,21 @@ if M33kAuras.IsRetail() then
   end)
 else
   M33kAuras.UnitChannelInfo = UnitChannelInfo
+end
+
+function Private.GetEmpoweredStageOverlay(state, index)
+  local stages = state.stagesData
+  if stages then
+    if stages[index] then
+      return 1 - stages[index].percentFinish, 1 - stages[index].percentStart, nil, nil, true
+    elseif state.stageTotal and index == state.stageTotal + 1 and stages[state.stageTotal] then
+      -- stageTotal + 1 should represent the part between end of the last stage and end of the cast
+      local lastStage = stages[state.stageTotal]
+      return 0, 1 - lastStage.percentFinish, nil, nil, true
+    end
+  end
+
+  return 0, 0, nil, nil, true
 end
 
 local constants = {
@@ -8570,55 +8584,91 @@ Private.event_prototypes = {
         local remainingCheck = %s
         local inverseTrigger = %s
         local showChargedDuration = %s
+        local spell, _, icon, startTime, endTime, _, _, notInterruptible, spellId, castBarID, delayMS = M33kAuras.UnitCastingInfo(unit)
+        local hasCast = spell ~= nil
+        local castType, stageTotal
         local empowered = false
-        local stage = 0
-        local stagesData = {}
+        local interruptible
 
-        local show, expirationTime, castType, spell, icon, startTime, endTime, interruptible, spellId, remaining, _, stageTotal
-
-        spell, _, icon, startTime, endTime, _, _, interruptible, spellId = M33kAuras.UnitCastingInfo(unit)
-        if issecretvalue(spell) then
-          return false
-        end
-        if spell then
+        if event == "UNIT_SPELLCAST_STOP" or event == "UNIT_SPELLCAST_CHANNEL_STOP" or event == "UNIT_SPELLCAST_EMPOWER_STOP_FAKE" then
+          hasCast = false
+        elseif hasCast then
           castType = "cast"
         else
-          spell, _, icon, startTime, endTime, _, interruptible, spellId, _, stageTotal = M33kAuras.UnitChannelInfo(unit)
-           if issecretvalue(spell) then
-            return false
-          end
-          if spell then
+          spell, _, icon, startTime, endTime, _, notInterruptible, spellId, _, stageTotal = M33kAuras.UnitChannelInfo(unit)
+          hasCast = spell ~= nil
+          if hasCast then
             castType = "channel"
-            if stageTotal and stageTotal > 0 then
-              empowered = true
+          end
+        end
 
-              local lastFinish = 0
-              for i = 1, stageTotal do
-                stagesData[i] = {
-                  start = lastFinish,
-                  finish = lastFinish + GetUnitEmpowerStageDuration(unit, i - 1) / 1000
-                }
-                lastFinish = stagesData[i].finish
-                if startTime / 1000 + lastFinish <= GetTime() then
+        local castIsSecret = issecretvalue(spell)
+
+        local durationObject
+        local expirationTime, duration, remaining
+        local timingReadable
+        local stage = 0
+        local stagesData = {}
+        if hasCast then
+          if not castIsSecret and notInterruptible ~= nil then
+            interruptible = not notInterruptible
+          end
+          empowered = castType == "channel" and (stageTotal or 0) > 0
+          if empowered then
+            durationObject = UnitEmpoweredChannelDuration(unit, showChargedDuration)
+          elseif castType == "channel" then
+            durationObject = UnitChannelDuration(unit)
+          else
+            durationObject = UnitCastingDuration(unit)
+          end
+
+          timingReadable = durationObject and not durationObject:HasSecretValues()
+          if timingReadable then
+            expirationTime = durationObject:GetEndTime()
+            duration = durationObject:GetTotalDuration()
+            remaining = durationObject:GetRemainingDuration()
+
+            if remainingCheck and remaining >= remainingCheck and remaining > 0 then
+              Private.ExecEnv.ScheduleCastCheck(expirationTime - remainingCheck, unit)
+            end
+          end
+
+          if empowered then
+            local stagePercentages = UnitEmpoweredStagePercentages(unit, showChargedDuration)
+            local stageDurations = UnitEmpoweredStageDurations(unit)
+            local lastFinishPercent = 0
+            for i = 1, stageTotal do
+              local stageDuration = stageDurations[i]
+              stagesData[i] = {
+                start = stageDuration:GetStartTime(), -- redunant but maybe some watched trigger will use that
+                finish = stageDuration:GetEndTime(), -- redunant but maybe some watched trigger will use that
+                percentStart = lastFinishPercent,
+                percentFinish = lastFinishPercent + stagePercentages[i],
+              }
+              lastFinishPercent = stagesData[i].percentFinish
+              if timingReadable then
+                local stageEnd = stagesData[i].finish
+                if stageEnd <= GetTime() then
                   stage = i
-                end
-                if Round(startTime/1000) == Round(GetTime()) then
-                  Private.ExecEnv.ScheduleCastCheck(startTime / 1000 + lastFinish, unit)
+                else
+                  Private.ExecEnv.ScheduleCastCheck(stageEnd, unit)
                 end
               end
             end
           end
         end
-        if empowered and showChargedDuration then
-          endTime = endTime + GetUnitEmpowerHoldAtMaxTime(unit)
-        end
-        interruptible = not interruptible
-        expirationTime = endTime and endTime > 0 and (endTime / 1000) or 0
-        remaining = expirationTime - GetTime()
 
-        if remainingCheck and remaining >= remainingCheck and remaining > 0 then
-          Private.ExecEnv.ScheduleCastCheck(expirationTime - remainingCheck, unit)
+        local charged
+        if not empowered then
+          charged = false
+        elseif stage ~= nil then
+          charged = stage == stageTotal
         end
+        local isSelf, selfKnown = Private.ExecEnv.UnitIsUnit("player", unit)
+        local ignoreSelf = selfKnown and not isSelf
+        local unitExists = M33kAuras.UnitExistsFixed(unit, smart)
+        local progressType = expirationTime and 'timed' or 'durationObject'
+        local usableProgress = M33kAuras.IsDurationObject(durationObject)
       ]=];
       ret = ret:format(trigger.unit == "group" and "true" or "false",
                         trigger.use_remaining and tonumber(trigger.remaining or 0) or "nil",
@@ -8632,6 +8682,11 @@ Private.event_prototypes = {
     end,
     statesParameter = "unit",
     args = {
+      {
+        name = "secretFiltersDescription",
+        type = "description",
+        display = L["Cast filters cannot match while their required information is secret. Cast information is secret in combat or while m+ is active. Own casts are never secret."],
+      },
       {
         name = "unit",
         required = true,
@@ -8651,6 +8706,7 @@ Private.event_prototypes = {
       },
       {
         name = "spellNames",
+        desc = L["When cast information is secret, this filter cannot match. The spell name can still be displayed."],
         display = L["Name(s)"],
         type = "spell",
         enable = function(trigger) return not trigger.use_inverse end,
@@ -8665,6 +8721,7 @@ Private.event_prototypes = {
       },
       {
         name = "spellIds",
+        desc = L["When cast information is secret, this filter cannot match."],
         display = L["Exact Spell ID(s)"],
         type = "spell",
         enable = function(trigger) return not trigger.use_inverse end,
@@ -8705,15 +8762,24 @@ Private.event_prototypes = {
       },
       {
         name = "interruptible",
+        desc = L["When cast information is secret, neither Interruptible nor Not Interruptible can match."],
         display = L["Interruptible"],
         type = "tristate",
         enable = function(trigger) return not trigger.use_inverse end,
         store = true,
         conditionType = "bool",
       },
-
+      {
+        -- Preserve the API boolean for secret-aware setters such as SetAlphaFromBoolean.
+        name = "notInterruptible", -- todo make that appear as a condition
+        hidden = true,
+        store = true,
+        test = "true",
+        conditionType = "bool",
+      },
       {
         name = "remaining",
+        desc = L["When cast information is secret, this filter cannot match. Cast progress can still be displayed."],
         display = L["Remaining Time"],
         type = "number",
         enable = function(trigger) return not trigger.use_inverse end,
@@ -8744,6 +8810,7 @@ Private.event_prototypes = {
       },
       {
         name = "stage",
+        desc = L["When cast information is secret, the current stage is unavailable and this filter cannot match."],
         display = L["Current Stage"],
         type = "number",
         enable = M33kAuras.IsRetail() and function(trigger) return not trigger.use_inverse end or false,
@@ -8768,7 +8835,7 @@ Private.event_prototypes = {
         name = "charged",
         display = L["Empowered Cast Fully Charged"],
         hidden = true,
-        init = "stage == stageTotal",
+        init = "charged",
         test = "true",
         enable = M33kAuras.IsRetail() and function(trigger) return not trigger.use_inverse end or false,
         store = true,
@@ -8792,9 +8859,15 @@ Private.event_prototypes = {
       {
         name = "duration",
         hidden = true,
-        init = "endTime and startTime and (endTime - startTime)/1000 or 0",
+        init = "duration",
         test = "true",
         store = true
+      },
+      {
+        name = "durationObject",
+        hidden = true,
+        store = true,
+        test = "true",
       },
       {
         name = "expirationTime",
@@ -8806,7 +8879,7 @@ Private.event_prototypes = {
       {
         name = "progressType",
         hidden = true,
-        init = "'timed'",
+        init = "progressType",
         test = "true",
         store = true
       },
@@ -8820,7 +8893,7 @@ Private.event_prototypes = {
       {
         name = "autoHide",
         hidden = true,
-        init = "not empowered",
+        init = "timingReadable and not empowered",
         test = "true",
         store = true,
         enable = function(trigger)
@@ -8838,7 +8911,7 @@ Private.event_prototypes = {
         type = "string",
         multiline = true,
         store = true,
-        init = "not issecretvalue(UnitGUID(unit)) and select(6, strsplit('-', UnitGUID(unit) or ''))",
+        init = "tostring(scrubsecretvalues(UnitCreatureID(unit)) or '')",
         conditionType = "string",
         preamble = "local npcIdChecker = Private.ExecEnv.ParseStringCheck(%q)",
         test = "npcIdChecker:Check(npcId)",
@@ -8849,7 +8922,7 @@ Private.event_prototypes = {
           return preamble:Check(state.npcId)
         end,
         operator_types = "none",
-        desc = L["Supports multiple entries, separated by commas. Prefix with '-' for negation."],
+        desc = L["Supports multiple entries, separated by commas. Prefix with '-' for negation."] .. "\n\n" .. L["When the NPC ID is secret, it is unavailable to this filter."],
         enable = function(trigger)
           return not trigger.use_inverse
         end,
@@ -8926,7 +8999,9 @@ Private.event_prototypes = {
         values = "actual_unit_types_with_specific",
         conditionType = "unit",
         conditionTest = function(state, unit, op)
-          return state and state.show and state.unit and (UnitIsUnit(state.sourceUnit, unit) == (op == "=="))
+          if not state or not state.show or not state.sourceUnit then return false end
+          local matches, known = Private.ExecEnv.UnitIsUnit(state.sourceUnit, unit)
+          return known and matches == (op == "==")
         end,
         store = true,
         hidden = true,
@@ -8957,30 +9032,33 @@ Private.event_prototypes = {
         type = "string",
         multiline = true,
         preamble = "local sourceNameRealmChecker = Private.ExecEnv.ParseNameCheck(%q)",
-        test = "sourceNameRealmChecker:Check(sourceName, sourceRealm)",
+        test = "not hasanysecretvalues(sourceName, sourceRealm) and sourceNameRealmChecker:Check(sourceName, sourceRealm)",
         conditionType = "string",
         conditionPreamble = function(input)
           return Private.ExecEnv.ParseNameCheck(input)
         end,
         conditionTest = function(state, needle, op, preamble)
-          return preamble:Check(state.sourceName, state.sourceRealm)
+          return not hasanysecretvalues(state.sourceName, state.sourceRealm) and preamble:Check(state.sourceName, state.sourceRealm)
         end,
         operator_types = "none",
         enable = function(trigger) return not trigger.use_inverse end,
-        desc = constants.nameRealmFilterDesc,
+        desc = constants.nameRealmFilterDesc .. "\n\n" .. L["When the source name or realm is secret, this filter cannot match, including negated entries."],
       },
       {
         name = "destUnit",
+        desc = L["When unit comparison is secret, this filter cannot match. Unit identity restrictions can apply independently of cast information."],
         display = L["Caster's Target"],
         type = "unit",
         values = "actual_unit_types_with_specific",
         conditionType = "unit",
         conditionTest = function(state, unit, op)
-          return state and state.show and state.destUnit and (UnitIsUnit(state.destUnit, unit) == (op == "=="))
+          if not state or not state.show or not state.destUnit then return false end
+          local matches, known = Private.ExecEnv.UnitIsUnit(state.destUnit, unit)
+          return known and matches == (op == "==")
         end,
         store = true,
         enable = function(trigger) return not trigger.use_inverse end,
-        test = "UnitIsUnit(destUnit, [[%s]])"
+        test = "Private.ExecEnv.UnitIsUnit(destUnit, [[%s]])"
       },
       {
         name = "destName",
@@ -9006,17 +9084,17 @@ Private.event_prototypes = {
         type = "string",
         multiline = true,
         preamble = "local destNameRealmChecker = Private.ExecEnv.ParseNameCheck(%q)",
-        test = "destNameRealmChecker:Check(destName, destRealm)",
+        test = "not hasanysecretvalues(destName, destRealm) and destNameRealmChecker:Check(destName, destRealm)",
         conditionType = "string",
         conditionPreamble = function(input)
           return Private.ExecEnv.ParseNameCheck(input)
         end,
         conditionTest = function(state, needle, op, preamble)
-          return preamble:Check(state.destName, state.destRealm)
+          return not hasanysecretvalues(state.destName, state.destRealm) and preamble:Check(state.destName, state.destRealm)
         end,
         operator_types = "none",
         enable = function(trigger) return not trigger.use_inverse end,
-        desc = constants.nameRealmFilterDesc,
+        desc = constants.nameRealmFilterDesc .. "\n\n" .. L["When the target name or realm is secret, this filter cannot match, including negated entries."],
       },
       {
         type = "header",
@@ -9029,7 +9107,7 @@ Private.event_prototypes = {
         type = "toggle",
         test = "true",
         enable = function(trigger)
-          return trigger.unit == "player" and not trigger.use_inverse
+          return not trigger.use_inverse
         end,
         reloadOptions = true
       },
@@ -9046,13 +9124,14 @@ Private.event_prototypes = {
       },
       {
         name = "ignoreSelf",
+        desc = L["When comparison with the player is secret, this filter cannot match and the cast is hidden."],
         display = L["Ignore Self"],
         type = "toggle",
         width = M33kAuras.doubleWidth,
         enable = function(trigger)
           return trigger.unit == "nameplate" or trigger.unit == "group" or trigger.unit == "raid" or trigger.unit == "party"
         end,
-        init = "not UnitIsUnit(\"player\", unit)"
+        init = "ignoreSelf"
       },
       {
         name = "onUpdateUnitTarget",
@@ -9073,7 +9152,7 @@ Private.event_prototypes = {
       },
       {
         hidden = true,
-        test = "M33kAuras.UnitExistsFixed(unit, smart) and ((not inverseTrigger and spell) or (inverseTrigger and not spell)) and specificUnitCheck"
+        test = "unitExists and ((not inverseTrigger and hasCast and usableProgress) or (inverseTrigger and not hasCast)) and specificUnitCheck"
       },
       {
         name = "stagesData",
@@ -9099,7 +9178,7 @@ Private.event_prototypes = {
         name = L["Empowered 1"],
         func = function(trigger, state)
           if not state.stageTotal or state.stageTotal < 1 then return 0, 0 end
-          return state.duration - state.stagesData[1].start, state.duration - state.stagesData[1].finish
+          return Private.GetEmpoweredStageOverlay(state, 1)
         end,
         enable = M33kAuras.IsRetail()
       },
@@ -9107,7 +9186,7 @@ Private.event_prototypes = {
         name = L["Empowered 2"],
         func = function(trigger, state)
           if not state.stageTotal or state.stageTotal < 2 then return 0, 0 end
-          return state.duration - state.stagesData[2].start, state.duration - state.stagesData[2].finish
+          return Private.GetEmpoweredStageOverlay(state, 2)
         end,
         enable = M33kAuras.IsRetail()
       },
@@ -9115,7 +9194,7 @@ Private.event_prototypes = {
         name = L["Empowered 3"],
         func = function(trigger, state)
           if not state.stageTotal or state.stageTotal < 3 then return 0, 0 end
-          return state.duration - state.stagesData[3].start, state.duration - state.stagesData[3].finish
+          return Private.GetEmpoweredStageOverlay(state, 3)
         end,
         enable = M33kAuras.IsRetail()
       },
@@ -9123,7 +9202,7 @@ Private.event_prototypes = {
         name = L["Empowered 4"],
         func = function(trigger, state)
           if not state.stageTotal or state.stageTotal < 4 then return 0, 0 end
-          return state.duration - state.stagesData[4].start, state.duration - state.stagesData[4].finish
+          return Private.GetEmpoweredStageOverlay(state, 4)
         end,
         enable = M33kAuras.IsRetail()
       },
@@ -9131,19 +9210,18 @@ Private.event_prototypes = {
         name = L["Empowered 5"],
         func = function(trigger, state)
           if not state.stageTotal or state.stageTotal < 5 then return 0, 0 end
-          return state.duration - state.stagesData[5].start, state.duration - state.stagesData[5].finish
+          return Private.GetEmpoweredStageOverlay(state, 5)
         end,
         enable = M33kAuras.IsRetail()
       },
       {
         name = L["Empowered Fully Charged"],
         func = function(trigger, state)
-          if not state.stageTotal or not state.stagesData[state.stageTotal]
-            or not trigger.use_showChargedDuration
+          if not state.stageTotal or not trigger.use_showChargedDuration
           then
             return 0, 0
           end
-          return state.duration - state.stagesData[state.stageTotal].finish, 0
+          return Private.GetEmpoweredStageOverlay(state, state.stageTotal + 1)
         end,
         enable = function(trigger)
           return M33kAuras.IsRetail() and trigger.use_showChargedDuration

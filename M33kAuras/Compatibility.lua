@@ -189,15 +189,21 @@ Private.ExecEnv.AreLegacyReputationsShown = C_Reputation.AreLegacyReputationsSho
 Private.ExecEnv.GetReputationSortType = C_Reputation.GetReputationSortType or function() return 0 end;
 
 
+-- The second result distinguishes a readable mismatch from restricted identity.
 function Private.ExecEnv.UnitIsUnit(unit1, unit2)
   if hasanysecretvalues(unit1, unit2) then
-    return false
+    return false, false
   end
+
+  if C_Secrets.ShouldUnitComparisonBeSecret(unit1, unit2) then
+    return false, false
+  end
+
   local res = UnitIsUnit(unit1, unit2)
-  if issecretvalue(res) then
-    return false
+  if issecretvalue(res) then -- just in case, you know
+    return false, false
   else
-    return res
+    return res, true
   end
 end
 
