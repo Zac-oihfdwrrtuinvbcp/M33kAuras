@@ -2901,10 +2901,10 @@ end
 ---@type table<string, string>
 Private.swing_types = {
   ["main"] = MAINHANDSLOT,
-  ["off"] = SECONDARYHANDSLOT
+  ["off"] = SECONDARYHANDSLOT,
 }
 
-if M33kAuras.IsClassicOrWrath() then
+if M33kAuras.IsForever() then
   Private.swing_types["ranged"] = RANGEDSLOT
 end
 

@@ -3440,6 +3440,72 @@ do
   end
 end
 
+-- Swing timer support code (Forever only, uses the native PLAYER_SWING event)
+if M33kAuras.IsForever() then
+  local handSlots = {
+    main = GetInventorySlotInfo("MainHandSlot"),
+    off = GetInventorySlotInfo("SecondaryHandSlot"),
+    ranged = GetInventorySlotInfo("RangedSlot"),
+  }
+
+  local handForSwingType = {
+    [Enum.PlayerSwingType.MainHand] = "main",
+    [Enum.PlayerSwingType.OffHand] = "off",
+    [Enum.PlayerSwingType.Ranged] = "ranged",
+  }
+
+  local swingTimerFrame
+  local swingData = {} -- [hand] = { duration = number, expirationTime = number }
+
+  local function swingTriggerUpdate()
+    Private.ScanEvents("SWING_TIMER_UPDATE")
+  end
+
+  local function OnPlayerSwing(swingDuration, swingType)
+    local hand = handForSwingType[swingType]
+    if not hand then return end
+    swingData[hand] = {
+      duration = swingDuration,
+      expirationTime = GetTime() + swingDuration
+    }
+    swingTriggerUpdate()
+  end
+
+  ---@param hand "main"|"off"|"ranged"
+  ---@return number duration
+  ---@return number expirationTime
+  ---@return string? weaponName
+  ---@return number? icon
+  function M33kAuras.GetSwingTimerInfo(hand)
+    local itemId = handSlots[hand] and GetInventoryItemID("player", handSlots[hand])
+    local name, _, _, _, _, _, _, _, _, icon = C_Item.GetItemInfo(itemId or 0)
+    local data = swingData[hand]
+    if data then
+      return data.duration, data.expirationTime, name, icon
+    else
+      return 0, math.huge, name, icon
+    end
+  end
+
+  ---@private
+  function M33kAuras.InitSwingTimer()
+    if not swingTimerFrame then
+      swingTimerFrame = CreateFrame("Frame")
+      swingTimerFrame:RegisterEvent("PLAYER_SWING")
+      -- matches Blizzard_SwingTimer's own registration for weapon swaps and attack speed changes
+      swingTimerFrame:RegisterEvent("WEAPON_SLOT_CHANGED")
+      swingTimerFrame:SetScript("OnEvent", function(_, event, swingDuration, swingType)
+        if event == "PLAYER_SWING" then
+          OnPlayerSwing(swingDuration, swingType)
+        else
+          -- name/icon are looked up live, but nothing else forces a rescan on weapon/haste changes
+          swingTriggerUpdate()
+        end
+      end)
+    end
+  end
+end
+
 do
   local spellActivationSpells = {};
   local spellActivationSpellsCurrent = {};

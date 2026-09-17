@@ -5569,6 +5569,107 @@ Private.event_prototypes = {
     automaticrequired = true,
     progressType = "timed"
   },
+  ["Swing Timer"] = {
+    type = "unit",
+    events = {},
+    internal_events = {
+      "SWING_TIMER_UPDATE"
+    },
+    force_events = "SWING_TIMER_UPDATE",
+    name = L["Swing Timer"],
+    loadFunc = function()
+      M33kAuras.InitSwingTimer();
+    end,
+    init = function(trigger)
+      local ret = [=[
+        local inverse = %s;
+        local hand = %q;
+        local triggerRemaining = %s
+        local duration, expirationTime, name, icon = M33kAuras.GetSwingTimerInfo(hand)
+        local remaining = expirationTime and expirationTime - GetTime()
+        local remainingCheck = not triggerRemaining or remaining and remaining %s triggerRemaining
+
+        if triggerRemaining and remaining and remaining >= triggerRemaining and remaining > 0 then
+          Private.ExecEnv.ScheduleScan(expirationTime - triggerRemaining, "SWING_TIMER_UPDATE")
+        end
+      ]=];
+      return ret:format(
+        (trigger.use_inverse and "true" or "false"),
+        trigger.hand or "main",
+        trigger.use_remaining and tonumber(trigger.remaining or 0) or "nil",
+        trigger.remaining_operator or "<"
+      );
+    end,
+    args = {
+      {
+        name = "hand",
+        required = true,
+        display = L["Weapon"],
+        type = "select",
+        values = "swing_types",
+        test = "true"
+      },
+      {
+        name = "duration",
+        hidden = true,
+        init = "duration",
+        test = "true",
+        store = true
+      },
+      {
+        name = "expirationTime",
+        init = "expirationTime",
+        hidden = true,
+        test = "true",
+        store = true
+      },
+      {
+        name = "progressType",
+        hidden = true,
+        init = "'timed'",
+        test = "true",
+        store = true
+      },
+      {
+        name = "name",
+        hidden = true,
+        init = "name",
+        test = "true",
+        store = true
+      },
+      {
+        name = "icon",
+        hidden = true,
+        init = "icon",
+        test = "true",
+        store = true
+      },
+      {
+        name = "remaining",
+        display = L["Remaining Time"],
+        type = "number",
+        enable = function(trigger) return not trigger.use_inverse end,
+        test = "true"
+      },
+      {
+        name = "inverse",
+        display = L["Inverse"],
+        type = "toggle",
+        test = "true"
+      },
+      {
+        hidden = true,
+        test = "(inverse and duration == 0) or (not inverse and duration > 0)"
+      },
+      {
+        hidden = true,
+        test = "remainingCheck"
+      }
+    },
+    automaticrequired = true,
+    progressType = "timed",
+    statesParameter = "one"
+  },
   ["Action Usable"] = {
     type = "spell",
     events = function()
@@ -11137,7 +11238,7 @@ if M33kAuras.IsClassicEra() then
   Private.event_prototypes["Alternate Power"] = nil
   Private.event_prototypes["Spell Activation Overlay"] = nil
 end
-if M33kAuras.IsCataOrMists() then
+if not M33kAuras.IsForever() then
   Private.event_prototypes["Swing Timer"] = nil
 end
 if M33kAuras.IsClassicOrWrathOrCata() then
