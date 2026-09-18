@@ -2093,7 +2093,7 @@ Private.load_prototype = {
     },
     {
       name = "enabledBossModID",
-      display = L["Enabled BossMod ID(BW Only)"],
+      display = L["Enabled BigWigs Module ID"],
       type = "string",
       multiline = true,
       desc = Private.get_encounters_list,
