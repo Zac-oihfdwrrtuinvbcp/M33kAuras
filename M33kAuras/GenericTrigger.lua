@@ -3675,7 +3675,7 @@ function M33kAuras.WatchUnitChange(unit)
     end
 
     local roleUpdate
-    if M33kAuras.IsClassicOrWrath() then
+    if M33kAuras.IsClassic() or M33kAuras.IsForever() then
       function roleUpdate(unit, eventsToSend)
         -- For classic check both raid role and group role
         local oldRaidRole = watchUnitChange.unitRaidRole[unit]
@@ -3692,7 +3692,7 @@ function M33kAuras.WatchUnitChange(unit)
         end
       end
     end
-    if M33kAuras.IsCataOrMistsOrRetail() then
+    if M33kAuras.IsRetail() then
       function roleUpdate(unit, eventsToSend)
         local oldRole = watchUnitChange.unitRoles[unit]
         local newRole = UnitGroupRolesAssigned(unit)

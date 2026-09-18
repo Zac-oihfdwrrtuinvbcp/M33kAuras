@@ -164,7 +164,7 @@ local constants = {
   guildFilterDesc = L["Supports multiple entries, separated by commas. Escape with \\. Prefix with '-' for negation."]
 }
 
-if M33kAuras.IsClassicOrWrathOrCataOrMists() then
+if M33kAuras.IsClassicOrWrathOrCataOrMists() or M33kAuras.IsForever() then
   ---@param unit UnitToken
   ---@return string? role
   M33kAuras.UnitRaidRole = function(unit)
