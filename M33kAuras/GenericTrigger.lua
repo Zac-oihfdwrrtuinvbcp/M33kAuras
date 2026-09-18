@@ -3952,7 +3952,7 @@ function Private.ExecEnv.CheckTotemSpellId(spellId, triggerSpellId, followoverri
 end
 
 -- Queueable Spells
-if M33kAuras.IsClassicOrWrath() then
+if M33kAuras.IsForever() then
   local queueableSpells
   local classQueueableSpells = {
     ["WARRIOR"] = {
@@ -4011,7 +4011,7 @@ local GetSpellPowerCost = GetSpellPowerCost or C_Spell and C_Spell.GetSpellPower
 ---@return number? cost
 function M33kAuras.GetSpellCost(powerTypeToCheck)
   local spellID = select(9, M33kAuras.UnitCastingInfo("player"))
-  if M33kAuras.IsClassicOrWrath() and not spellID then
+  if M33kAuras.IsForever() and not spellID then
     spellID = M33kAuras.GetQueuedSpell()
   end
   if spellID then

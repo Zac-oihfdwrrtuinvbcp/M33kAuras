@@ -3343,7 +3343,7 @@ Private.event_prototypes = {
         Private.WatchStagger()
         tinsert(result, "WA_UNIT_STAGGER_CHANGED");
       end
-      if M33kAuras.IsClassicOrWrath() and trigger.use_showCost and trigger.unit == "player" then
+      if M33kAuras.IsForever() and trigger.use_showCost and trigger.unit == "player" then
         tinsert(result, "WA_UNIT_QUEUED_SPELL_CHANGED");
       end
       if M33kAuras.IsCataOrMists() and trigger.unit == "player" and trigger.use_powertype and trigger.powertype == 26 then
@@ -3356,7 +3356,7 @@ Private.event_prototypes = {
       return result
     end,
     loadFunc = function(trigger)
-      if M33kAuras.IsClassicOrWrath() and trigger.use_showCost and trigger.unit == "player" then
+      if M33kAuras.IsForever() and trigger.use_showCost and trigger.unit == "player" then
         M33kAuras.WatchForQueuedSpell()
       end
       local includePets = trigger.use_includePets == true and trigger.includePets or nil
