@@ -4368,11 +4368,8 @@ Private.glow_types = {
   ACShine = L["Autocast Shine"],
   Pixel = L["Pixel Glow"],
   buttonOverlay = L["Action Button Glow"],
+  Proc = L["Proc Glow"],
 }
-
-if M33kAuras.IsMistsOrRetail() then
-  Private.glow_types.Proc = L["Proc Glow"]
-end
 
 ---@type table<string, string>
 Private.font_sizes = {
