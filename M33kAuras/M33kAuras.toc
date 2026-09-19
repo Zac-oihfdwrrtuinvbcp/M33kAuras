@@ -26,7 +26,7 @@ embeds.xml
 Libs\TaintLess\TaintLess.xml
 
 # Client flavor specific libs
-Libs\LibSpecialization\LibSpecialization.lua
+Libs\LibSpecialization\LibSpecialization.lua [ExcludeLoadGameType camelot]
 BackdropTemplateM33kAuras.xml
 
 Init.lua
