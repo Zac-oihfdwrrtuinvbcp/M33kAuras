@@ -3223,22 +3223,6 @@ if not (M33kAuras.IsClassicEra() or M33kAuras.IsForever()) then
     [233] = L["Raid (Mythic Flex)"],
     [236] = L["Lorewalking"],
     [237] = M33kAuras.IsMists() and L["Dungeon (Celestial)"] or unused,
-
-    -- Forever
-    [184] = L["Normal Party"],
-    [185] = L["20 Player Raid"],
-    [186] = L["40 Player Raid"],
-    [197] = L["10 Player Raid"],
-    [198] = L["Normal Party"],
-    [201] = L["Normal Party"],
-    [202] = unused, -- Difficulty A, party
-    [203] = unused, -- Difficulty B, party
-    [204] = unused, -- Difficulty C, party
-    [207] = L["Normal Party"],
-    [213] = unused, -- Infinite, party
-    [214] = unused, -- DNT - Internal only, party
-    [215] = L["Normal Party"],
-    [226] = L["20 Player Raid"],
   }
 
   Private.instance_difficulty_types[0] =L["None"]
