@@ -11277,7 +11277,10 @@ if M33kAuras.IsClassicEra() then
   Private.event_prototypes["Alternate Power"] = nil
   Private.event_prototypes["Spell Activation Overlay"] = nil
 end
-if not M33kAuras.IsForever() then
+if M33kAuras.IsForever() then
+  Private.event_prototypes["Death Knight Rune"] = nil
+  Private.event_prototypes["Evoker Essence"] = nil
+else
   Private.event_prototypes["Swing Timer"] = nil
 end
 if M33kAuras.IsClassicOrWrathOrCata() then

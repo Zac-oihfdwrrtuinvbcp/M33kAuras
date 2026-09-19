@@ -1821,7 +1821,7 @@ Private.money_precision_types = {
   [3] = "123 " .. Private.coin_icons.gold .. " 45 " .. Private.coin_icons.silver .. " 67 " .. Private.coin_icons.copper
 }
 
-if M33kAuras.IsRetail() then
+if M33kAuras.IsRetail() or M33kAuras.IsForever() then
   Private.GetCurrencyListSize = C_CurrencyInfo.GetCurrencyListSize
   Private.GetCurrencyIDFromLink = C_CurrencyInfo.GetCurrencyIDFromLink
   Private.ExpandCurrencyList = C_CurrencyInfo.ExpandCurrencyList
