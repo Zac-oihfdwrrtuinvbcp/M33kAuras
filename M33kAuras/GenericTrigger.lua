@@ -4058,8 +4058,11 @@ do
     if not(tenchFrame) then
       tenchFrame = CreateFrame("Frame");
       tenchFrame:RegisterEvent("PLAYER_ENTERING_WORLD");
-      if M33kAuras.IsRetail() then
+      if M33kAuras.IsRetail() or M33kAuras.IsForever() then
         tenchFrame:RegisterEvent("WEAPON_ENCHANT_CHANGED")
+      end
+      if M33kAuras.IsForever() then
+        tenchFrame:RegisterEvent("WEAPON_SLOT_CHANGED")
       end
       tenchFrame:RegisterUnitEvent("UNIT_INVENTORY_CHANGED", "player")
       if M33kAuras.IsClassicOrWrath() then
@@ -4067,7 +4070,7 @@ do
       end
 
       local getTenchName
-      if M33kAuras.IsRetail() then
+      if M33kAuras.IsRetail() or M33kAuras.IsForever() then
         getTenchName = function(id)
           local tooltipData = C_TooltipInfo.GetInventoryItem("player", id)
           if tooltipData and tooltipData.lines then
