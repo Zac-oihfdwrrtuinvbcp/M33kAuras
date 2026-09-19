@@ -197,7 +197,7 @@ function Private.GetTalentData(specId)
 	local specData = {}
   local specDataByNodeId = {}
 	local heroData = {}
-	C_ClassTalents.InitializeViewLoadout(specId, 70)
+	C_ClassTalents.InitializeViewLoadout(specId, M33kAuras.IsForever() and GetMaxPlayerLevel() or 70)
 	C_ClassTalents.ViewLoadout({})
 	local configInfo = C_Traits.GetConfigInfo(configId)
 	local subTreeIDs = M33kAuras.IsTWW() and C_ClassTalents.GetHeroTalentSpecsForClassSpec(configId, specId) or {}
@@ -256,9 +256,15 @@ function Private.GetTalentData(specId)
 	local classOffsets = classIDToOffsets[classID]
 	local basePanOffsetX = initialBasePanOffsetX - (classOffsets and classOffsets.extraOffsetX or 0)
 	local basePanOffsetY = initialBasePanOffsetY - (classOffsets and classOffsets.extraOffsetY or 0)
-	specData[999] = backgroundAlias[specId]
+	local background = backgroundAlias[specId]
+	if M33kAuras.IsForever() then
+		-- Camelot uses the same pan offsets for every class.
+		basePanOffsetX, basePanOffsetY = 49 - 60, 24 - 31
+		background = classFile and ("talent-background-" .. classFile:lower())
+	end
+	specData[999] = background
 	specData[1000] = { offsetX = basePanOffsetX, offsetY = basePanOffsetY }
-	heroData[999] = backgroundAlias[specId]
+	heroData[999] = background
 	heroData[1001] = true
 	Private.talentInfo[specId] = { specData, heroData, specDataByNodeId }
 	return specData, heroData, specDataByNodeId

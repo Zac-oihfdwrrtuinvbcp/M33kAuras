@@ -1295,6 +1295,18 @@ function M33kAuras.GetEffectiveSpellPower()
   return spellPower
 end
 
+local function talentSpecIdForLoad(trigger)
+  if M33kAuras.IsForever() then
+    local class = Private.checkForSingleLoadCondition(trigger, "class")
+    local classId = class and M33kAuras.class_ids[class]
+    if classId then
+      return Private.ExecEnv.GetSpecializationInfoForClassID(classId, 1)
+    end
+  else
+    return Private.checkForSingleLoadCondition(trigger, "class_and_spec")
+  end
+end
+
 local function valuesForTalentFunction(trigger)
   return function()
     local single_class = Private.checkForSingleLoadCondition(trigger, "class")
@@ -1303,10 +1315,10 @@ local function valuesForTalentFunction(trigger)
     end
 
     -- If a single specific class was found, load the specific list for it
-    if M33kAuras.IsRetail() then
-      local single_class_and_spec = Private.checkForSingleLoadCondition(trigger, "class_and_spec")
-      if single_class_and_spec then
-        return Private.GetTalentData(single_class_and_spec)
+    if M33kAuras.IsRetail() or M33kAuras.IsForever() then
+      local specId = talentSpecIdForLoad(trigger)
+      if specId then
+        return Private.GetTalentData(specId)
       else
         -- this should never happen
         return {}
@@ -1556,10 +1568,10 @@ Private.load_prototype = {
       display = L["Talent"],
       type = "multiselect",
       values = valuesForTalentFunction,
-      test = M33kAuras.IsRetail() and "M33kAuras.CheckTalentId(%d) == (%d == 4)" or "M33kAuras.CheckTalentByIndex(%d, %d)",
+      test = (M33kAuras.IsRetail() or M33kAuras.IsForever()) and "M33kAuras.CheckTalentId(%d) == (%d == 4)" or "M33kAuras.CheckTalentByIndex(%d, %d)",
       enableTest = function(trigger, talent, arg)
-        if M33kAuras.IsRetail() then
-          local specId = Private.checkForSingleLoadCondition(trigger, "class_and_spec")
+        if (M33kAuras.IsRetail() or M33kAuras.IsForever()) then
+          local specId = talentSpecIdForLoad(trigger)
           if specId then
             local talentData = Private.GetTalentData(specId)
             if type(talentData) == "table" then
@@ -1574,8 +1586,8 @@ Private.load_prototype = {
           return M33kAuras.CheckTalentByIndex(talent, arg) ~= nil
         end
       end,
-      multiConvertKey = M33kAuras.IsRetail() and function(trigger, key)
-        local specId = Private.checkForSingleLoadCondition(trigger, "class_and_spec")
+      multiConvertKey = (M33kAuras.IsRetail() or M33kAuras.IsForever()) and function(trigger, key)
+        local specId = talentSpecIdForLoad(trigger)
         if specId then
           local talentData = Private.GetTalentData(specId)
           if type(talentData) == "table" and talentData[key] then
@@ -1584,7 +1596,7 @@ Private.load_prototype = {
         end
       end or nil,
       events = (M33kAuras.IsClassicOrWrathOrCataOrMists() and {"CHARACTER_POINTS_CHANGED", "PLAYER_TALENT_UPDATE", "ACTIVE_TALENT_GROUP_CHANGED"})
-        or (M33kAuras.IsRetail() and {"WA_TALENT_UPDATE"}),
+        or ((M33kAuras.IsRetail() or M33kAuras.IsForever()) and {"WA_TALENT_UPDATE"}),
       inverse = function(load)
         -- Check for multi select!
         return M33kAuras.IsClassicEra() and (load.talent_extraOption == 2 or load.talent_extraOption == 3)
@@ -1595,33 +1607,33 @@ Private.load_prototype = {
           return Private.talent_extra_option_types
         end
       },
-      control = M33kAuras.IsWrathOrCataOrMistsOrRetail() and "M33kAurasMiniTalent" or nil,
-      multiNoSingle = M33kAuras.IsWrathOrCataOrMistsOrRetail(), -- no single mode
-      multiTristate = M33kAuras.IsWrathOrCataOrMistsOrRetail(), -- values can be true/false/nil
-      multiAll = M33kAuras.IsWrathOrCataOrMistsOrRetail(), -- require all tests
-      orConjunctionGroup = M33kAuras.IsWrathOrCataOrMistsOrRetail() and "talent",
-      multiUseControlWhenFalse = M33kAuras.IsWrathOrCataOrMistsOrRetail(),
+      control = (M33kAuras.IsWrathOrCataOrMistsOrRetail() or M33kAuras.IsForever()) and "M33kAurasMiniTalent" or nil,
+      multiNoSingle = (M33kAuras.IsWrathOrCataOrMistsOrRetail() or M33kAuras.IsForever()), -- no single mode
+      multiTristate = (M33kAuras.IsWrathOrCataOrMistsOrRetail() or M33kAuras.IsForever()), -- values can be true/false/nil
+      multiAll = (M33kAuras.IsWrathOrCataOrMistsOrRetail() or M33kAuras.IsForever()), -- require all tests
+      orConjunctionGroup = (M33kAuras.IsWrathOrCataOrMistsOrRetail() or M33kAuras.IsForever()) and "talent",
+      multiUseControlWhenFalse = (M33kAuras.IsWrathOrCataOrMistsOrRetail() or M33kAuras.IsForever()),
       enable = function(trigger)
         return M33kAuras.IsClassicEra()
-            or (M33kAuras.IsWrathOrCataOrMists() and Private.checkForSingleLoadCondition(trigger, "class") ~= nil)
+            or ((M33kAuras.IsWrathOrCataOrMists() or M33kAuras.IsForever()) and Private.checkForSingleLoadCondition(trigger, "class") ~= nil)
             or (M33kAuras.IsRetail() and Private.checkForSingleLoadCondition(trigger, "class_and_spec") ~= nil)
       end,
       hidden = function(trigger)
         return not (
             M33kAuras.IsClassicEra()
-            or (M33kAuras.IsWrathOrCataOrMists() and Private.checkForSingleLoadCondition(trigger, "class") ~= nil)
+            or ((M33kAuras.IsWrathOrCataOrMists() or M33kAuras.IsForever()) and Private.checkForSingleLoadCondition(trigger, "class") ~= nil)
             or (M33kAuras.IsRetail() and Private.checkForSingleLoadCondition(trigger, "class_and_spec") ~= nil))
       end,
     },
     {
       name = "talent2",
-      display = M33kAuras.IsWrathOrCataOrMistsOrRetail() and L["Or Talent"] or L["And Talent"],
+      display = (M33kAuras.IsWrathOrCataOrMistsOrRetail() or M33kAuras.IsForever()) and L["Or Talent"] or L["And Talent"],
       type = "multiselect",
       values = valuesForTalentFunction,
-      test = M33kAuras.IsRetail() and "M33kAuras.CheckTalentId(%d) == (%d == 4)" or "M33kAuras.CheckTalentByIndex(%d, %d)",
+      test = (M33kAuras.IsRetail() or M33kAuras.IsForever()) and "M33kAuras.CheckTalentId(%d) == (%d == 4)" or "M33kAuras.CheckTalentByIndex(%d, %d)",
       enableTest = function(trigger, talent, arg)
-        if M33kAuras.IsRetail() then
-          local specId = Private.checkForSingleLoadCondition(trigger, "class_and_spec")
+        if (M33kAuras.IsRetail() or M33kAuras.IsForever()) then
+          local specId = talentSpecIdForLoad(trigger)
           if specId then
             local talentData = Private.GetTalentData(specId)
             if type(talentData) == "table" then
@@ -1636,8 +1648,8 @@ Private.load_prototype = {
           return M33kAuras.CheckTalentByIndex(talent, arg) ~= nil
         end
       end,
-      multiConvertKey = M33kAuras.IsRetail() and function(trigger, key)
-        local specId = Private.checkForSingleLoadCondition(trigger, "class_and_spec")
+      multiConvertKey = (M33kAuras.IsRetail() or M33kAuras.IsForever()) and function(trigger, key)
+        local specId = talentSpecIdForLoad(trigger)
         if specId then
           local talentData = Private.GetTalentData(specId)
           if type(talentData) == "table" and talentData[key] then
@@ -1647,7 +1659,7 @@ Private.load_prototype = {
       end or nil,
       events = (M33kAuras.IsClassicEra() and {"CHARACTER_POINTS_CHANGED"})
         or (M33kAuras.IsWrathOrCataOrMists() and {"CHARACTER_POINTS_CHANGED", "PLAYER_TALENT_UPDATE"})
-        or (M33kAuras.IsRetail() and {"WA_TALENT_UPDATE"}),
+        or ((M33kAuras.IsRetail() or M33kAuras.IsForever()) and {"WA_TALENT_UPDATE"}),
       inverse = function(load)
         return M33kAuras.IsClassicEra() and (load.talent2_extraOption == 2 or load.talent2_extraOption == 3)
       end,
@@ -1657,36 +1669,36 @@ Private.load_prototype = {
           return Private.talent_extra_option_types
         end,
       },
-      control = M33kAuras.IsWrathOrCataOrMistsOrRetail() and "M33kAurasMiniTalent" or nil,
-      multiNoSingle = M33kAuras.IsWrathOrCataOrMistsOrRetail(), -- no single mode
-      multiTristate = M33kAuras.IsWrathOrCataOrMistsOrRetail(), -- values can be true/false/nil
-      multiAll = M33kAuras.IsWrathOrCataOrMistsOrRetail(), -- require all tests
-      orConjunctionGroup  = M33kAuras.IsWrathOrCataOrMistsOrRetail() and "talent",
-      multiUseControlWhenFalse = M33kAuras.IsWrathOrCataOrMistsOrRetail(),
+      control = (M33kAuras.IsWrathOrCataOrMistsOrRetail() or M33kAuras.IsForever()) and "M33kAurasMiniTalent" or nil,
+      multiNoSingle = (M33kAuras.IsWrathOrCataOrMistsOrRetail() or M33kAuras.IsForever()), -- no single mode
+      multiTristate = (M33kAuras.IsWrathOrCataOrMistsOrRetail() or M33kAuras.IsForever()), -- values can be true/false/nil
+      multiAll = (M33kAuras.IsWrathOrCataOrMistsOrRetail() or M33kAuras.IsForever()), -- require all tests
+      orConjunctionGroup  = (M33kAuras.IsWrathOrCataOrMistsOrRetail() or M33kAuras.IsForever()) and "talent",
+      multiUseControlWhenFalse = (M33kAuras.IsWrathOrCataOrMistsOrRetail() or M33kAuras.IsForever()),
       enable = function(trigger)
         return (trigger.use_talent ~= nil or trigger.use_talent2 ~= nil) and (
           M33kAuras.IsClassicEra()
-          or (M33kAuras.IsWrathOrCataOrMists() and Private.checkForSingleLoadCondition(trigger, "class") ~= nil)
+          or ((M33kAuras.IsWrathOrCataOrMists() or M33kAuras.IsForever()) and Private.checkForSingleLoadCondition(trigger, "class") ~= nil)
           or (M33kAuras.IsRetail() and Private.checkForSingleLoadCondition(trigger, "class_and_spec") ~= nil)
         )
       end,
       hidden = function(trigger)
         return not((trigger.use_talent ~= nil or trigger.use_talent2 ~= nil) and (
           M33kAuras.IsClassicEra()
-          or (M33kAuras.IsWrathOrCataOrMists() and Private.checkForSingleLoadCondition(trigger, "class") ~= nil)
+          or ((M33kAuras.IsWrathOrCataOrMists() or M33kAuras.IsForever()) and Private.checkForSingleLoadCondition(trigger, "class") ~= nil)
           or (M33kAuras.IsRetail() and Private.checkForSingleLoadCondition(trigger, "class_and_spec") ~= nil))
         )
       end,
     },
     {
       name = "talent3",
-      display = M33kAuras.IsWrathOrCataOrMistsOrRetail() and L["Or Talent"] or L["And Talent"],
+      display = (M33kAuras.IsWrathOrCataOrMistsOrRetail() or M33kAuras.IsForever()) and L["Or Talent"] or L["And Talent"],
       type = "multiselect",
       values = valuesForTalentFunction,
-      test = M33kAuras.IsRetail() and "M33kAuras.CheckTalentId(%d) == (%d == 4)" or "M33kAuras.CheckTalentByIndex(%d, %d)",
+      test = (M33kAuras.IsRetail() or M33kAuras.IsForever()) and "M33kAuras.CheckTalentId(%d) == (%d == 4)" or "M33kAuras.CheckTalentByIndex(%d, %d)",
       enableTest = function(trigger, talent, arg)
-        if M33kAuras.IsRetail() then
-          local specId = Private.checkForSingleLoadCondition(trigger, "class_and_spec")
+        if (M33kAuras.IsRetail() or M33kAuras.IsForever()) then
+          local specId = talentSpecIdForLoad(trigger)
           if specId then
             local talentData = Private.GetTalentData(specId)
             if type(talentData) == "table" then
@@ -1701,8 +1713,8 @@ Private.load_prototype = {
           return M33kAuras.CheckTalentByIndex(talent, arg) ~= nil
         end
       end,
-      multiConvertKey = M33kAuras.IsRetail() and function(trigger, key)
-        local specId = Private.checkForSingleLoadCondition(trigger, "class_and_spec")
+      multiConvertKey = (M33kAuras.IsRetail() or M33kAuras.IsForever()) and function(trigger, key)
+        local specId = talentSpecIdForLoad(trigger)
         if specId then
           local talentData = Private.GetTalentData(specId)
           if type(talentData) == "table" and talentData[key] then
@@ -1712,7 +1724,7 @@ Private.load_prototype = {
       end or nil,
       events = (M33kAuras.IsClassicEra() and {"CHARACTER_POINTS_CHANGED"})
         or (M33kAuras.IsWrathOrCataOrMists() and {"CHARACTER_POINTS_CHANGED", "PLAYER_TALENT_UPDATE"})
-        or (M33kAuras.IsRetail() and {"WA_TALENT_UPDATE"}),
+        or ((M33kAuras.IsRetail() or M33kAuras.IsForever()) and {"WA_TALENT_UPDATE"}),
       inverse = function(load)
         return M33kAuras.IsClassicEra() and (load.talent3_extraOption == 2 or load.talent3_extraOption == 3)
       end,
@@ -1722,23 +1734,23 @@ Private.load_prototype = {
           return Private.talent_extra_option_types
         end,
       },
-      control = M33kAuras.IsWrathOrCataOrMistsOrRetail() and "M33kAurasMiniTalent" or nil,
-      multiNoSingle = M33kAuras.IsWrathOrCataOrMistsOrRetail(), -- no single mode
-      multiTristate = M33kAuras.IsWrathOrCataOrMistsOrRetail(), -- values can be true/false/nil
-      multiAll = M33kAuras.IsWrathOrCataOrMistsOrRetail(), -- require all tests
-      orConjunctionGroup  = M33kAuras.IsWrathOrCataOrMistsOrRetail() and "talent",
-      multiUseControlWhenFalse = M33kAuras.IsWrathOrCataOrMistsOrRetail(),
+      control = (M33kAuras.IsWrathOrCataOrMistsOrRetail() or M33kAuras.IsForever()) and "M33kAurasMiniTalent" or nil,
+      multiNoSingle = (M33kAuras.IsWrathOrCataOrMistsOrRetail() or M33kAuras.IsForever()), -- no single mode
+      multiTristate = (M33kAuras.IsWrathOrCataOrMistsOrRetail() or M33kAuras.IsForever()), -- values can be true/false/nil
+      multiAll = (M33kAuras.IsWrathOrCataOrMistsOrRetail() or M33kAuras.IsForever()), -- require all tests
+      orConjunctionGroup  = (M33kAuras.IsWrathOrCataOrMistsOrRetail() or M33kAuras.IsForever()) and "talent",
+      multiUseControlWhenFalse = (M33kAuras.IsWrathOrCataOrMistsOrRetail() or M33kAuras.IsForever()),
       enable = function(trigger)
         return ((trigger.use_talent ~= nil and trigger.use_talent2 ~= nil) or trigger.use_talent3 ~= nil) and (
           M33kAuras.IsClassicEra()
-          or (M33kAuras.IsWrathOrCataOrMists() and Private.checkForSingleLoadCondition(trigger, "class") ~= nil)
+          or ((M33kAuras.IsWrathOrCataOrMists() or M33kAuras.IsForever()) and Private.checkForSingleLoadCondition(trigger, "class") ~= nil)
           or (M33kAuras.IsRetail() and Private.checkForSingleLoadCondition(trigger, "class_and_spec") ~= nil)
         )
       end,
       hidden = function(trigger)
         return not(((trigger.use_talent ~= nil and trigger.use_talent2 ~= nil) or trigger.use_talent3 ~= nil) and (
           M33kAuras.IsClassicEra()
-          or (M33kAuras.IsWrathOrCataOrMists() and Private.checkForSingleLoadCondition(trigger, "class") ~= nil)
+          or ((M33kAuras.IsWrathOrCataOrMists() or M33kAuras.IsForever()) and Private.checkForSingleLoadCondition(trigger, "class") ~= nil)
           or (M33kAuras.IsRetail() and Private.checkForSingleLoadCondition(trigger, "class_and_spec") ~= nil)
         ))
       end

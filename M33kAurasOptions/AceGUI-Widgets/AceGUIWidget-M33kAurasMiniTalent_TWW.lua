@@ -9,7 +9,7 @@ end
 
 local keepOpenForReload = {}
 
-local widgetType, widgetVersion = "M33kAurasMiniTalent", 4
+local widgetType, widgetVersion = "M33kAurasMiniTalent", 5
 local AceGUI = LibStub and LibStub("AceGUI-3.0", true)
 if not AceGUI or (AceGUI:GetWidgetVersion(widgetType) or 0) >= widgetVersion then
   return
@@ -280,13 +280,17 @@ local methods = {
       end
     end
 
-    -- zoom both panel in their center
+    -- Preserve Forever's three talent groups; Midnight zooms its two panels.
     local isSubTree = self.list[1001]
     local talentWidth
     local talentHeight
     local talentIconSize = 36
     local scale
-    if not isSubTree then
+    if M33kAuras.IsForever() then
+      talentWidth = 1212
+      talentHeight = 681
+      scale = 1
+    elseif not isSubTree then
       talentWidth = 1612
       talentHeight = 856
       local cutmid = 120
