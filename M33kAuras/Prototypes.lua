@@ -11280,6 +11280,9 @@ end
 if M33kAuras.IsForever() then
   Private.event_prototypes["Death Knight Rune"] = nil
   Private.event_prototypes["Evoker Essence"] = nil
+  Private.event_prototypes["PvP Talent Selected"] = nil
+  Private.event_prototypes["Class/Spec"] = nil
+  Private.event_prototypes["Loot Specialization"] = nil
 else
   Private.event_prototypes["Swing Timer"] = nil
 end
