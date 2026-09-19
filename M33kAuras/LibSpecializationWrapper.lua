@@ -1,5 +1,4 @@
 if not M33kAuras.IsLibsOK() then return end
-if not M33kAuras.IsCataOrMistsOrRetail() then return end
 ---@type string
 local AddonName = ...
 ---@class Private
@@ -160,7 +159,7 @@ if LibSpec then
     [2] = true
   }
 
-  if M33kAuras.IsRetail() then
+  if M33kAuras.IsRetail() or M33kAuras.IsForever() then
     function Private.LibSpecWrapper.CheckTalentForUnit(unit, talentId)
       if Private.ExecEnv.UnitIsUnit(unit, "player") then
         return select(4, M33kAuras.GetTalentById(talentId))
