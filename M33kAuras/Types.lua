@@ -3145,7 +3145,7 @@ Private.instance_types = {
   ratedarena = L["Rated Arena"]
 }
 
-if M33kAuras.IsClassicEra() then
+if M33kAuras.IsClassicEra() or M33kAuras.IsForever() then
   Private.instance_types["ratedpvp"] = nil
   Private.instance_types["arena"] = nil
   Private.instance_types["ratedarena"] = nil
