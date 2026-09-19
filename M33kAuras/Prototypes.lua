@@ -1457,14 +1457,15 @@ Private.load_prototype = {
     },
     {
       name = "pvpmode",
-      display = L["PvP Mode Active"],
+      display = M33kAuras.IsForever() and L["PvP Flagged"] or L["PvP Mode Active"],
       type = "tristate",
-      init = M33kAuras.IsWrathClassic() and "arg" or nil,
+      init = (M33kAuras.IsWrathClassic() or M33kAuras.IsForever()) and "arg" or nil,
       width = M33kAuras.normalWidth,
       optional = true,
-      enable = M33kAuras.IsWrathClassic(),
-      hidden = not M33kAuras.IsWrathClassic(),
-      events = {"PLAYER_FLAGS_CHANGED", "UNIT_FACTION", "ZONE_CHANGED"}
+      enable = M33kAuras.IsWrathClassic() or M33kAuras.IsForever(),
+      hidden = not (M33kAuras.IsWrathClassic() or M33kAuras.IsForever()),
+      events = M33kAuras.IsForever() and {"PLAYER_FLAGS_CHANGED", "UNIT_FACTION", "UNIT_FLAGS", "ZONE_CHANGED"}
+        or {"PLAYER_FLAGS_CHANGED", "UNIT_FACTION", "ZONE_CHANGED"}
     },
     {
       name = "petbattle",
@@ -10201,6 +10202,11 @@ Private.event_prototypes = {
       end
       local unit_events = {}
       local pet_unit_events = {}
+      if M33kAuras.IsForever() and trigger.use_pvpflagged ~= nil then
+        tinsert(unit_events, "UNIT_FACTION")
+        tinsert(unit_events, "UNIT_FLAGS")
+        tinsert(events, "ZONE_CHANGED")
+      end
       if trigger.use_vehicle ~= nil then
         if M33kAuras.IsClassicEra() then
           tinsert(unit_events, "UNIT_FLAGS")
@@ -10289,9 +10295,9 @@ Private.event_prototypes = {
         name = "pvpflagged",
         display = L["PvP Flagged"],
         type = "tristate",
-        init = "UnitIsPVP('player')",
-        enable = M33kAuras.IsWrathOrRetail(),
-        hidden = not M33kAuras.IsWrathOrRetail()
+        init = M33kAuras.IsForever() and "(UnitIsPVPFreeForAll('player') or UnitIsPVP('player'))" or "UnitIsPVP('player')",
+        enable = M33kAuras.IsWrathOrRetail() or M33kAuras.IsForever(),
+        hidden = not (M33kAuras.IsWrathOrRetail() or M33kAuras.IsForever())
       },
       {
         name = "alive",

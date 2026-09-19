@@ -1792,7 +1792,7 @@ local function scanForLoadsImpl(toCheck, event, arg1, ...)
   end
 
   local pvp = false
-  if M33kAuras.IsWrathClassic() then
+  if M33kAuras.IsWrathClassic() or M33kAuras.IsForever() then
     pvp = UnitIsPVPFreeForAll("player") or UnitIsPVP("player")
   end
 
@@ -1825,8 +1825,8 @@ local function scanForLoadsImpl(toCheck, event, arg1, ...)
       -- else
       -- if M33kAuras.IsRetail() then
       if M33kAuras.IsForever() then
-        shouldBeLoaded = loadFunc and loadFunc("ScanForLoads_Auras", inCombat, alive, inEncounter, vehicle, mounted, addonRestrictionsActive, class, player, realm, guild, race, faction, playerLevel, raidRole, group, groupSize, raidMemberType, zone, zoneId, zonegroupId, instanceId, minimapText, encounter_id, size, difficulty, difficultyIndex)
-        couldBeLoaded =  loadOpt and loadOpt("ScanForLoads_Auras",   inCombat, alive, inEncounter, vehicle, mounted, addonRestrictionsActive, class, player, realm, guild, race, faction, playerLevel, raidRole, group, groupSize, raidMemberType, zone, zoneId, zonegroupId, instanceId, minimapText, encounter_id, size, difficulty, difficultyIndex)
+        shouldBeLoaded = loadFunc and loadFunc("ScanForLoads_Auras", inCombat, alive, inEncounter, pvp, vehicle, mounted, addonRestrictionsActive, class, player, realm, guild, race, faction, playerLevel, raidRole, group, groupSize, raidMemberType, zone, zoneId, zonegroupId, instanceId, minimapText, encounter_id, size, difficulty, difficultyIndex)
+        couldBeLoaded =  loadOpt and loadOpt("ScanForLoads_Auras",   inCombat, alive, inEncounter, pvp, vehicle, mounted, addonRestrictionsActive, class, player, realm, guild, race, faction, playerLevel, raidRole, group, groupSize, raidMemberType, zone, zoneId, zonegroupId, instanceId, minimapText, encounter_id, size, difficulty, difficultyIndex)
       else
         shouldBeLoaded = loadFunc and loadFunc("ScanForLoads_Auras", inCombat, alive, inEncounter, warmodeActive, inPetBattle, vehicle, vehicleUi, dragonriding, mounted, addonRestrictionsActive, specId, player, realm, guild, race, faction, playerLevel, effectiveLevel, role, position, group, groupSize, raidMemberType, zone, zoneId, zonegroupId, instanceId, minimapText, encounter_id, size, difficulty, difficultyIndex, affixes)
         couldBeLoaded =  loadOpt and loadOpt("ScanForLoads_Auras",   inCombat, alive, inEncounter, warmodeActive, inPetBattle, vehicle, vehicleUi, dragonriding, mounted, addonRestrictionsActive, specId, player, realm, guild, race, faction, playerLevel, effectiveLevel, role, position, group, groupSize, raidMemberType, zone, zoneId, zonegroupId, instanceId, minimapText, encounter_id, size, difficulty, difficultyIndex, affixes)
@@ -1989,8 +1989,11 @@ if M33kAuras.IsWrathOrCataOrMistsOrRetail() or M33kAuras.IsForever() then
   unitLoadFrame:RegisterUnitEvent("UNIT_ENTERED_VEHICLE", "player");
   unitLoadFrame:RegisterUnitEvent("UNIT_EXITED_VEHICLE", "player");
 end
-if M33kAuras.IsWrathOrCataOrMistsOrRetail() then
+if M33kAuras.IsWrathOrCataOrMistsOrRetail() or M33kAuras.IsForever() then
   unitLoadFrame:RegisterUnitEvent("PLAYER_FLAGS_CHANGED", "player");
+end
+if M33kAuras.IsForever() then
+  unitLoadFrame:RegisterUnitEvent("UNIT_FACTION", "player");
 end
 
 function Private.RegisterLoadEvents()

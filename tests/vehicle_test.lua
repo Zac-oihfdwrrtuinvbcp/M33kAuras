@@ -107,7 +107,7 @@ for _, flavor in ipairs({ "Forever", "Midnight", "Classic", "Wrath", "Cata", "Mi
   for _, event in ipairs(loadPrototype.args[1].events) do
     T.expect(registrations[event], "registers " .. event .. " for the load condition")
   end
-  T.expect((registrations.PLAYER_FLAGS_CHANGED == true) == (not classic and not forever), "preserves unrelated legacy event guards")
+  T.expect((registrations.PLAYER_FLAGS_CHANGED == true) == not classic, "registers player flag updates on supported flavors")
   T.expect(contains(triggerEvents.unit_events.player, "UNIT_FLAGS") == (classic or forever)
     and contains(triggerEvents.unit_events.player, "UNIT_ENTERED_VEHICLE") == not classic
     and contains(triggerEvents.unit_events.player, "UNIT_EXITED_VEHICLE") == not classic,
