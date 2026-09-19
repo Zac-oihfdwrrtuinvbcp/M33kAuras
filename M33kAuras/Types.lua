@@ -1403,6 +1403,22 @@ do
     [85] = true, -- Earthen
   }
 
+  if M33kAuras.IsForever() then
+    races = {
+      [1] = true, [2] = true, [3] = true, [4] = true,
+      [5] = true, [6] = true, [7] = true, [8] = true,
+    }
+    -- Both factions use the same race token; keep their localized names together.
+    for _, raceId in ipairs({95, 96}) do
+      local raceInfo = C_CreatureInfo.GetRaceInfo(raceId)
+      if raceInfo then
+        local previousName = M33kAuras.race_types[raceInfo.clientFileString]
+        M33kAuras.race_types[raceInfo.clientFileString] = previousName
+          and previousName .. " / " .. raceInfo.raceName or raceInfo.raceName
+      end
+    end
+  end
+
   for raceId, enabled in pairs(races) do
     local raceInfo = C_CreatureInfo.GetRaceInfo(raceId)
     if raceInfo then
