@@ -566,6 +566,8 @@ do
   }
   if M33kAuras.IsRetail() then
     tinsert(LibStubLibs, "LibSpecialization")
+  end
+  if M33kAuras.IsRetail() or M33kAuras.IsForever() then
     AddonCompartmentFrame:RegisterAddon({
       text = AddonName,
       icon = "Interface\\AddOns\\M33kAuras\\Media\\Textures\\icon.blp",
