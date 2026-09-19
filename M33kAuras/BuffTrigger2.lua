@@ -2364,8 +2364,10 @@ Buff2Frame:RegisterEvent("UNIT_PET")
 Buff2Frame:RegisterEvent("RAID_TARGET_UPDATE")
 Buff2Frame:RegisterEvent("PLAYER_SOFT_ENEMY_CHANGED")
 Buff2Frame:RegisterEvent("PLAYER_SOFT_FRIEND_CHANGED")
-if M33kAuras.IsWrathOrCataOrMistsOrRetail() then
+if M33kAuras.IsWrathOrCataOrMistsOrRetail() or M33kAuras.IsForever() then
   Buff2Frame:RegisterEvent("PLAYER_FOCUS_CHANGED")
+end
+if M33kAuras.IsWrathOrCataOrMistsOrRetail() then
   Buff2Frame:RegisterEvent("ARENA_OPPONENT_UPDATE")
   Buff2Frame:RegisterEvent("UNIT_ENTERED_VEHICLE")
   Buff2Frame:RegisterEvent("UNIT_EXITED_VEHICLE")

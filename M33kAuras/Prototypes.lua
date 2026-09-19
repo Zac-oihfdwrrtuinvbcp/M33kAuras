@@ -2346,7 +2346,7 @@ local function AddUnitEventForEvents(result, unit, event)
 end
 
 local function AddTargetConditionEvents(result, useFocus)
-  if M33kAuras.IsWrathOrCataOrMistsOrRetail() then
+  if M33kAuras.IsWrathOrCataOrMistsOrRetail() or M33kAuras.IsForever() then
     if useFocus then
       tinsert(result, "PLAYER_FOCUS_CHANGED")
     end
