@@ -195,7 +195,8 @@ for _, flavor in ipairs({ "Forever", "Midnight" }) do
   T.expect(#widget.buttons == 3 and widget.talentIdToButton[1003] ~= nil, "lays out entries from all three talent groups")
   if flavor == "Forever" then
     local first, last = widget.talentIdToButton[1001], widget.talentIdToButton[1003]
-    T.expect(last.posX - first.posX == 800 and first.posY == last.posY, "preserves the three groups' relative positions")
+    T.expect(first.posX > 0 and first.posX < 404 and last.posX > 808 and last.posX < 1212
+      and first.posY == last.posY, "keeps the enlarged talent groups within their panels")
     T.expect(widget.scale == 440 / 1212 and widget.saveSize.fullHeight == 681 * widget.scale,
       "fits the Forever talent frame dimensions")
   else

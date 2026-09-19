@@ -9,7 +9,7 @@ end
 
 local keepOpenForReload = {}
 
-local widgetType, widgetVersion = "M33kAurasMiniTalent", 5
+local widgetType, widgetVersion = "M33kAurasMiniTalent", 6
 local AceGUI = LibStub and LibStub("AceGUI-3.0", true)
 if not AceGUI or (AceGUI:GetWidgetVersion(widgetType) or 0) >= widgetVersion then
   return
@@ -138,6 +138,7 @@ end
 
 local function TalentFrame_Update(self)
   local buttonShownCount = 0
+  local expandedIconSize = M33kAuras.IsForever() and 24 or buttonSize * .5
   self.linePool:ReleaseAll()
   if self.list then
     for _, button in ipairs(self.buttons) do
@@ -159,7 +160,7 @@ local function TalentFrame_Update(self)
         button:SetPoint(point, button.obj, "TOPLEFT", posX, posY)
         button:SetEnabled(true)
         button:SetMouseClickEnabled(true)
-        button:SetSize((buttonSize/self.scale) * .5, (buttonSize/self.scale) * .5)
+        button:SetSize(expandedIconSize / self.scale, expandedIconSize / self.scale)
         button:SetScale(self.scale)
         button.cover:ClearAllPoints()
         button.cover:SetPoint("TOPLEFT", button, "TOPLEFT", -5, 5)
@@ -290,6 +291,18 @@ local methods = {
       talentWidth = 1212
       talentHeight = 681
       scale = 1
+      local groupWidth = talentWidth / 3
+      local minY, maxY = math.huge, -math.huge
+      for _, b in ipairs(self.buttons) do
+        minY, maxY = math.min(minY, b.posY), math.max(maxY, b.posY)
+      end
+      local centerY = (minY + maxY) / 2
+      local verticalZoom = math.min(1.35, (talentHeight - 80) / math.max(1, maxY - minY))
+      for _, b in ipairs(self.buttons) do
+        local groupCenter = (math.floor(b.posX / groupWidth) + .5) * groupWidth
+        b.posX = groupCenter + (b.posX - groupCenter) * 1.35
+        b.posY = talentHeight / 2 + (b.posY - centerY) * verticalZoom
+      end
     elseif not isSubTree then
       talentWidth = 1612
       talentHeight = 856
