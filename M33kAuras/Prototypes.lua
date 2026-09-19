@@ -8341,13 +8341,20 @@ Private.event_prototypes = {
         local aggro, status, threatpct, rawthreatpct, threatvalue, threattotal
         if unit and unit ~= "none" then
           aggro, status, threatpct, rawthreatpct, threatvalue = M33kAuras.UnitDetailedThreatSituation('player', unit)
-          threattotal = (threatvalue or 0) * 100 / (threatpct ~= 0 and threatpct or 1)
+          if not hasanysecretvalues(threatvalue, threatpct) then
+            threattotal = (threatvalue or 0) * 100 / (threatpct ~= 0 and threatpct or 1)
+          end
         else
           status = UnitThreatSituation('player')
-          aggro = status == 2 or status == 3
+          if not issecretvalue(status) then
+            aggro = status == 2 or status == 3
+          end
           threatpct, rawthreatpct, threatvalue, threattotal = 100, 100, 0, 100
         end
       ]];
+      if trigger.use_aggro ~= nil then
+        ret = ret .. "if issecretvalue(aggro) or aggro == nil then return false end\n"
+      end
       return ret .. unitHelperFunctions.SpecificUnitCheck(trigger);
     end,
     progressType = "static",
@@ -8484,11 +8491,11 @@ Private.event_prototypes = {
       },
       {
         hidden = true,
-        test = "status ~= nil and ok"
+        test = "(issecretvalue(status) or status ~= nil) and ok"
       },
       {
         hidden = true,
-        test = "M33kAuras.UnitExistsFixed(unit, false) and specificUnitCheck"
+        test = "M33kAuras.UnitExistsFixed(unit, false) and not issecretvalue(specificUnitCheck) and specificUnitCheck"
       }
     },
     automaticrequired = true
