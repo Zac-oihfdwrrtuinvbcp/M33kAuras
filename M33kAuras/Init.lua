@@ -532,7 +532,7 @@ function M33kAuras.IsTWW()
 end
 
 function M33kAuras.IsForever()
-  return M33kAuras.BuildInfo == 16001
+  return M33kAuras.BuildInfo >= 16000 and M33kAuras.BuildInfo < 20000
 end
 
 ---@param ... string
