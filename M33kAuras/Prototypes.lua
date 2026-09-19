@@ -8153,6 +8153,8 @@ Private.event_prototypes = {
         desc = function()
           if M33kAuras.IsRetail() then
             return L["Set IDs can be found on websites such as wowhead.com/item-sets"]
+          elseif M33kAuras.IsForever() then
+            return L["Set IDs can be found on websites such as wowhead.com/forever/item-sets"]
           elseif M33kAuras.IsClassicEra() then
             return L["Set IDs can be found on websites such as wowhead.com/classic/item-sets"]
           elseif M33kAuras.IsCataClassic() then
