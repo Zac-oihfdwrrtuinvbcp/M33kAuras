@@ -4428,7 +4428,7 @@ for i = 1, 4 do
   Private.multiUnitUnits.party["partypet"..i] = true
 end
 
-if M33kAuras.IsWrathOrCataOrMistsOrRetail() then
+if M33kAuras.IsWrathOrCataOrMistsOrRetail() or M33kAuras.IsForever() then
   for i = 1, 10 do
     Private.baseUnitId["boss"..i] = true
     Private.multiUnitUnits.boss["boss"..i] = true
@@ -4581,6 +4581,12 @@ M33kAuras.StopMotion.animation_types = {
   once = L["Forward"],
   progress = L["Progress"]
 }
+
+if M33kAuras.IsForever() then
+  -- Keep arena unit tokens for battleground flag carriers, but omit the Arena selectors.
+  Private.unit_types_bufftrigger_2.arena = nil
+  Private.actual_unit_types_cast.arena = nil
+end
 
 if M33kAuras.IsClassicEra() then
   Private.baseUnitId.focus = nil
