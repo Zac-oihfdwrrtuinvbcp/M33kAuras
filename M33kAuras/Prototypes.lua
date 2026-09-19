@@ -2012,10 +2012,10 @@ Private.load_prototype = {
       display = L["Raid Role"],
       type = "multiselect",
       values = "raid_role_types",
-      init = M33kAuras.IsClassicOrWrathOrCataOrMists() and "arg" or nil,
-      enable = M33kAuras.IsClassicOrWrathOrCataOrMists(),
+      init = (M33kAuras.IsClassicOrWrathOrCataOrMists() or M33kAuras.IsForever()) and "arg" or nil,
+      enable = M33kAuras.IsClassicOrWrathOrCataOrMists() or M33kAuras.IsForever(),
       hidden = M33kAuras.IsRetail(),
-      events = {"PLAYER_ROLES_ASSIGNED"}
+      events = M33kAuras.IsForever() and {"PLAYER_ROLES_ASSIGNED", "GROUP_ROSTER_UPDATE"} or {"PLAYER_ROLES_ASSIGNED"}
     },
     {
       name = "ingroup",
@@ -2650,7 +2650,7 @@ Private.event_prototypes = {
         store = true,
         conditionType = "select",
         enable = function(trigger)
-          return M33kAuras.IsClassicOrWrathOrCataOrMists() and (trigger.unit == "group" or trigger.unit == "raid" or trigger.unit == "party")
+          return (M33kAuras.IsClassicOrWrathOrCataOrMists() or M33kAuras.IsForever()) and (trigger.unit == "group" or trigger.unit == "raid" or trigger.unit == "party")
         end
       },
       -- {
@@ -3771,7 +3771,7 @@ Private.event_prototypes = {
         store = true,
         conditionType = "select",
         enable = function(trigger)
-          return M33kAuras.IsClassicOrCataOrMists() and (trigger.unit == "group" or trigger.unit == "raid" or trigger.unit == "party")
+          return (M33kAuras.IsClassicOrCataOrMists() or M33kAuras.IsForever()) and (trigger.unit == "group" or trigger.unit == "raid" or trigger.unit == "party")
         end
       },
       -- {
@@ -4070,7 +4070,7 @@ Private.event_prototypes = {
         store = true,
         conditionType = "select",
         enable = function(trigger)
-          return M33kAuras.IsClassicOrCataOrMists() and (trigger.unit == "group" or trigger.unit == "raid" or trigger.unit == "party")
+          return (M33kAuras.IsClassicOrCataOrMists() or M33kAuras.IsForever()) and (trigger.unit == "group" or trigger.unit == "raid" or trigger.unit == "party")
         end
       },
       -- {
@@ -9073,7 +9073,7 @@ Private.event_prototypes = {
         store = true,
         conditionType = "select",
         enable = function(trigger)
-          return M33kAuras.IsClassicOrCataOrMists() and (trigger.unit == "group" or trigger.unit == "raid" or trigger.unit == "party")
+          return (M33kAuras.IsClassicOrCataOrMists() or M33kAuras.IsForever()) and (trigger.unit == "group" or trigger.unit == "raid" or trigger.unit == "party")
                  and not trigger.use_inverse
         end
       },

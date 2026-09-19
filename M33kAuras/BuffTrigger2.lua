@@ -2257,7 +2257,7 @@ local function EventHandler(frame, event, arg1, arg2, ...)
         tinsert(unitsToRemove, unit)
       end
     end
-  elseif event == "GROUP_ROSTER_UPDATE" then
+  elseif event == "GROUP_ROSTER_UPDATE" or event == "PLAYER_ROLES_ASSIGNED" then
     unitVisible = {}
     for unit in GetAllUnits("group", true, "PlayersAndPets") do
       RecheckActiveForUnitType("group", unit, deactivatedTriggerInfos)
@@ -2374,6 +2374,9 @@ Buff2Frame:RegisterEvent("INSTANCE_ENCOUNTER_ENGAGE_UNIT")
 Buff2Frame:RegisterEvent("NAME_PLATE_UNIT_ADDED")
 Buff2Frame:RegisterEvent("NAME_PLATE_UNIT_REMOVED")
 Buff2Frame:RegisterEvent("GROUP_ROSTER_UPDATE")
+if M33kAuras.IsForever() then
+  Buff2Frame:RegisterEvent("PLAYER_ROLES_ASSIGNED")
+end
 Buff2Frame:RegisterEvent("PLAYER_ENTERING_WORLD")
 Buff2Frame:RegisterEvent("PARTY_MEMBER_DISABLE")
 Buff2Frame:RegisterEvent("PARTY_MEMBER_ENABLE")
@@ -3154,7 +3157,7 @@ function BuffTrigger.Add(data)
       local groupTrigger = trigger.unit == "group" or trigger.unit == "raid" or trigger.unit == "party"
       local effectiveIgnoreSelf = (groupTrigger or trigger.unit == "nameplate") and trigger.ignoreSelf
       local effectiveGroupRole = M33kAuras.IsWrathOrCataOrMistsOrRetail() and (groupTrigger and trigger.useGroupRole and trigger.group_role) or nil
-      local effectiveRaidRole = M33kAuras.IsClassicOrWrathOrCataOrMists() and (groupTrigger and trigger.useRaidRole and trigger.raid_role) or nil
+      local effectiveRaidRole = (M33kAuras.IsClassicOrWrathOrCataOrMists() or M33kAuras.IsForever()) and (groupTrigger and trigger.useRaidRole and trigger.raid_role) or nil
       local effectiveClass = groupTrigger and trigger.useClass and trigger.class
       local effectiveSpecId = M33kAuras.IsCataOrMistsOrRetail() and (groupTrigger and trigger.useActualSpec and trigger.actualSpec) or nil
       local effectiveArenaSpec = M33kAuras.IsRetail() and (trigger.unit == "arena" and trigger.useArenaSpec and trigger.arena_spec) or nil

@@ -2,6 +2,6 @@ Run `lua5.1 tests/run.lua` or `luajit tests/run.lua` from the repository root.
 
 These regression tests load the real addon source with minimal WoW stubs.
 They cover animation scheduling, sandbox lookups, nested aura environment activation,
-options validation, talent caching, load conditions, and talent triggers. Picker checks
+options validation, raid assignments, talent caching, load conditions, and talent triggers. Picker checks
 use stubbed frames; in-game rendering still needs manual verification.
 Adapted from WeakAuras upstream sandbox tests (9069a62d).
