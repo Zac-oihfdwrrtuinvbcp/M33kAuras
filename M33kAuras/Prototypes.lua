@@ -765,7 +765,7 @@ if M33kAuras.IsMists() then
   end
 end
 
-if M33kAuras.IsRetail() then
+if M33kAuras.IsRetail() or M33kAuras.IsForever() then
   local talentCheckFrame = CreateFrame("Frame")
   Private.frames["M33kAuras talentCheckFrame"] = talentCheckFrame
   talentCheckFrame:RegisterEvent("TRAIT_CONFIG_CREATED")
@@ -773,6 +773,10 @@ if M33kAuras.IsRetail() then
   talentCheckFrame:RegisterEvent("PLAYER_TALENT_UPDATE")
   talentCheckFrame:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
   talentCheckFrame:RegisterEvent("PLAYER_LOGIN")
+  if M33kAuras.IsForever() then
+    talentCheckFrame:RegisterEvent("ACTIVE_TALENT_GROUP_CHANGED")
+    talentCheckFrame:RegisterEvent("ACTIVE_PLAYER_SPECIALIZATION_CHANGED")
+  end
 
   --- @type table<number, {rank: number, spellId: number}>
   local selectedTalentsById = {}
@@ -833,7 +837,9 @@ if M33kAuras.IsRetail() then
     Private.StopProfileSystem("talent")
   end
 
-  talentCheckFrame:SetScript("OnEvent", Private.CheckTalentsForLoad)
+  talentCheckFrame:SetScript("OnEvent", function(_, event)
+    Private.CheckTalentsForLoad(event)
+  end)
 
   ---@param talentId integer
   ---@return string? spellName

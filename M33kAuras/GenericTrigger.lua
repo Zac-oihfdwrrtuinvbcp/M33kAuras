@@ -1253,7 +1253,7 @@ function HandleEvent(frame, event, arg1, arg2, ...)
       Private.CheckCooldownReady();
       Private.StopProfileSystem("generictrigger WA_DELAYED_PLAYER_ENTERING_WORLD");
       Private.PreShowModels()
-      if M33kAuras.IsRetail() then
+      if M33kAuras.IsRetail() or M33kAuras.IsForever() then
         Private.CheckTalentsForLoad("WA_DELAYED_PLAYER_ENTERING_WORLD")
       end
     end,

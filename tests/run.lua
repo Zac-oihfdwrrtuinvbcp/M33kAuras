@@ -13,6 +13,7 @@ local tests = {
   "aura_environment_test.lua",
   "aura_environment_stack_test.lua",
   "common_options_test.lua",
+  "talent_cache_test.lua",
 }
 
 local interpreter = arg[-1]
