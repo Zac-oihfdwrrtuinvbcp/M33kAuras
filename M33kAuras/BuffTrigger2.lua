@@ -1556,7 +1556,10 @@ end
 
 local function roleForTriggerInfo(triggerInfo, unit)
   if triggerInfo.fetchRole then
-    return UnitGroupRolesAssigned(unit)
+    local role = UnitGroupRolesAssigned(unit)
+    if not issecretvalue(role) then
+      return role
+    end
   end
 end
 
@@ -3156,7 +3159,7 @@ function BuffTrigger.Add(data)
 
       local groupTrigger = trigger.unit == "group" or trigger.unit == "raid" or trigger.unit == "party"
       local effectiveIgnoreSelf = (groupTrigger or trigger.unit == "nameplate") and trigger.ignoreSelf
-      local effectiveGroupRole = M33kAuras.IsWrathOrCataOrMistsOrRetail() and (groupTrigger and trigger.useGroupRole and trigger.group_role) or nil
+      local effectiveGroupRole = (M33kAuras.IsWrathOrCataOrMistsOrRetail() or M33kAuras.IsForever()) and (groupTrigger and trigger.useGroupRole and trigger.group_role) or nil
       local effectiveRaidRole = (M33kAuras.IsClassicOrWrathOrCataOrMists() or M33kAuras.IsForever()) and (groupTrigger and trigger.useRaidRole and trigger.raid_role) or nil
       local effectiveClass = groupTrigger and trigger.useClass and trigger.class
       local effectiveSpecId = M33kAuras.IsCataOrMistsOrRetail() and (groupTrigger and trigger.useActualSpec and trigger.actualSpec) or nil
@@ -3216,7 +3219,7 @@ function BuffTrigger.Add(data)
         compareFunc = matchCombineFunctions[trigger.combineMode] or matchCombineFunctions["showLowest"],
         unitExists = showIfInvalidUnit,
         fetchTooltip = not IsSingleMissing(trigger) and trigger.unit ~= "multi" and trigger.fetchTooltip,
-        fetchRole = M33kAuras.IsCataOrMistsOrRetail() and trigger.unit ~= "multi" and trigger.fetchRole,
+        fetchRole = (M33kAuras.IsCataOrMistsOrRetail() or M33kAuras.IsForever()) and trigger.unit ~= "multi" and trigger.fetchRole,
         fetchRaidMark = trigger.unit ~= "multi" and trigger.fetchRaidMark,
         groupTrigger = IsGroupTrigger(trigger),
         ignoreSelf = effectiveIgnoreSelf,
@@ -3388,7 +3391,7 @@ function BuffTrigger.GetAdditionalProperties(data, triggernum)
     props["refreshTime"] = { display = L["Since Apply/Refresh"], formatter = "timed" }
   end
 
-  if M33kAuras.IsCataOrMistsOrRetail() and trigger.unit ~= "multi" and trigger.fetchRole then
+  if (M33kAuras.IsCataOrMistsOrRetail() or M33kAuras.IsForever()) and trigger.unit ~= "multi" and trigger.fetchRole then
     props["role"] = { display = L["Assigned Role"] }
     props["roleIcon"] = { display = L["Assigned Role Icon"] }
   end

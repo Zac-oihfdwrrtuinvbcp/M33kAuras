@@ -1,4 +1,4 @@
--- Exercise raid assignments through the real load compiler and aura filter.
+-- Exercise raid assignments and group roles through the load compiler and aura filter.
 local testsDir = arg[0]:match("^(.*)[/\\][^/\\]*$") or "."
 package.path = testsDir .. "/?.lua;" .. package.path
 local T = require("helpers")
@@ -34,6 +34,14 @@ assignment = assignment:match("^(.-)\n  if M33kAuras.IsClassicEra%(%) then") or 
 local applies = section(buffs, "local function TriggerInfoApplies", "local function FormatAffectedUnaffected")
   .. "\nreturn TriggerInfoApplies"
 local effective = assert(buffs:match("local effectiveRaidRole = ([^\n]+)"))
+local effectiveGroupRole = assert(buffs:match("local effectiveGroupRole = ([^\n]+)"))
+local fetchRole = assert(buffs:match("fetchRole = ([^\n]+)")):gsub(",$", "")
+local roleForTriggerInfo = section(buffs, "local function roleForTriggerInfo", "local function markForTriggerInfo")
+  .. "\nreturn roleForTriggerInfo"
+local properties = section(buffs, "function BuffTrigger.GetAdditionalProperties", "function BuffTrigger.GetProgressSources")
+local optionSource = readSource("M33kAurasOptions/BuffTrigger2.lua")
+local optionsSource = "return {" .. section(optionSource, "    fetchRole = {", "    fetchRaidMark = {")
+  .. section(optionSource, "    useActualSpec = {", "    useRaidRole = {") .. "}"
 local handler = section(buffs, "local function EventHandler", "\nif M33kAuras.IsCataOrMistsOrRetail() then")
   .. "\nreturn EventHandler"
 local registration = section(buffs, 'Buff2Frame:RegisterEvent("UNIT_AURA")', "-- For UNIT_IN_RANGE_UPDATE")
@@ -51,6 +59,8 @@ for _, flavor in ipairs({ "Forever", "Midnight", "Classic", "Wrath", "Cata", "Mi
     IsClassicOrWrathOrCataOrMists = function() return legacy end,
     IsClassicOrCataOrMists = function() return legacy and flavor ~= "Wrath" end,
     IsWrathOrCataOrMistsOrRetail = function() return flavor ~= "Classic" and flavor ~= "Forever" end,
+    IsClassicOrWrath = function() return flavor == "Classic" or flavor == "Wrath" end,
+    IsCataOrMistsOrRetail = function() return flavor == "Cata" or flavor == "Mists" or flavor == "Midnight" end,
     UnitIsPet = function(unit) return unit == "raidpet1" end,
     petUnitToUnit = { raidpet1 = "raid1" },
   }
@@ -125,6 +135,53 @@ for _, flavor in ipairs({ "Forever", "Midnight", "Classic", "Wrath", "Cata", "Mi
     info.raidRole = { NONE = true }
     T.expect(filter(info, "raid3") and not filter(info, "party1"), "Other matches unassigned raid members")
   end
+
+  T.section(flavor .. ": assigned group roles")
+  trigger.type, trigger.useGroupRole, trigger.group_role, trigger.fetchRole = "aura2", true, { TANK = true }, true
+  env.OptionsPrivate = { Private = {} }
+  local options = load(optionsSource, env)
+  local groupEnabled = flavor ~= "Classic"
+  local fetchEnabled = flavor ~= "Classic" and flavor ~= "Wrath"
+  T.expect(not options.useGroupRole.hidden() == groupEnabled and not options.group_role.hidden() == groupEnabled,
+    "shows the group role filters on supported flavors")
+  T.expect(not options.fetchRole.hidden() == fetchEnabled, "shows assigned role text options on supported flavors")
+  T.expect(options.useActualSpec.hidden() == (not wa.IsCataOrMistsOrRetail()),
+    "keeps specialization filters limited to flavors with specialization syncing")
+
+  local secret = {}
+  local assigned = { raid1 = "TANK", raid2 = "HEALER", raid3 = "DAMAGER" }
+  env.UnitGroupRolesAssigned = function(unit) return assigned[unit] or "NONE" end
+  env.issecretvalue = function(value) return value == secret end
+  local groupInfo = { groupRole = load("return " .. effectiveGroupRole, env) }
+  T.expect((groupInfo.groupRole ~= nil) == groupEnabled, "activates group role filtering on supported flavors")
+  if groupEnabled then
+    local filter = load(applies, env)
+    T.expect(filter(groupInfo, "raid1") and filter(groupInfo, "raidpet1")
+      and not filter(groupInfo, "raid2") and not filter(groupInfo, "raid3"),
+      "filters tanks, healers, damage dealers and pets by assigned role")
+    assigned.raid1 = "HEALER"
+    T.expect(not filter(groupInfo, "raid1") and not filter(groupInfo, "raidpet1"),
+      "updates player and pet eligibility after a group role change")
+  end
+  groupInfo.fetchRole = load("return " .. fetchRole, env)
+  T.expect(groupInfo.fetchRole == fetchEnabled, "activates assigned role text on supported flavors")
+  if fetchEnabled then
+    local role = load(roleForTriggerInfo, env)
+    T.expect(role(groupInfo, "raid2") == "HEALER" and role(groupInfo, "party1") == "NONE",
+      "fetches the assigned role without specialization syncing")
+    assigned.raid2 = secret
+    T.expect(role(groupInfo, "raid2") == nil, "does not pass a secret role to icon table lookups")
+  end
+  env.BuffTrigger, env.IsSingleMissing = {}, function() return false end
+  load(properties, env)
+  local props = env.BuffTrigger.GetAdditionalProperties({ triggers = {{ trigger = trigger }} }, 1)
+  T.expect((props.role ~= nil and props.roleIcon ~= nil) == fetchEnabled,
+    "advertises assigned role text and icon properties when enabled")
+  trigger.unit = "multi"
+  props = env.BuffTrigger.GetAdditionalProperties({ triggers = {{ trigger = trigger }} }, 1)
+  T.expect(options.fetchRole.hidden() and not props.role and not props.roleIcon
+    and not load("return " .. fetchRole, env), "omits role text for multi-target tracking")
+  trigger.unit = "raid"
 
   if flavor == "Forever" or flavor == "Midnight" then
     local checked, registered = {}, {}
