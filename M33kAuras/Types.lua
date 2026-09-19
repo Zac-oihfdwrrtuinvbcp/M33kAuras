@@ -3154,7 +3154,7 @@ end
 ---@type table
 Private.instance_difficulty_types = {}
 
-if not M33kAuras.IsClassicEra() then
+if not (M33kAuras.IsClassicEra() or M33kAuras.IsForever()) then
   -- Fill out instance_difficulty_types automatically.
   -- Unfortunately the names BLizzard gives are not entirely unique,
   -- so try hard to disambiguate them via the type, and if nothing works by
