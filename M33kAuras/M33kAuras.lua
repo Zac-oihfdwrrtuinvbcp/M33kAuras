@@ -1749,7 +1749,7 @@ local function scanForLoadsImpl(toCheck, event, arg1, ...)
       end
     end
   end
-  if M33kAuras.IsClassicEra() then
+  if M33kAuras.IsClassicEra() or M33kAuras.IsForever() then
     vehicle = UnitOnTaxi('player')
   end
   if M33kAuras.IsWrathOrCataOrMistsOrRetail() then
@@ -1931,6 +1931,10 @@ else
   loadFrame:RegisterEvent("ACTIVE_TALENT_GROUP_CHANGED");
 end
 
+if M33kAuras.IsForever() then
+  loadFrame:RegisterEvent("VEHICLE_UPDATE");
+end
+
 if M33kAuras.IsWrathOrCataOrMists() then
   loadFrame:RegisterEvent("VEHICLE_UPDATE");
   loadFrame:RegisterEvent("UPDATE_VEHICLE_ACTIONBAR")
@@ -1981,9 +1985,11 @@ local unitLoadFrame = CreateFrame("Frame");
 Private.frames["Display Load Handling 2"] = unitLoadFrame;
 
 unitLoadFrame:RegisterUnitEvent("UNIT_FLAGS", "player");
-if M33kAuras.IsWrathOrCataOrMistsOrRetail() then
+if M33kAuras.IsWrathOrCataOrMistsOrRetail() or M33kAuras.IsForever() then
   unitLoadFrame:RegisterUnitEvent("UNIT_ENTERED_VEHICLE", "player");
   unitLoadFrame:RegisterUnitEvent("UNIT_EXITED_VEHICLE", "player");
+end
+if M33kAuras.IsWrathOrCataOrMistsOrRetail() then
   unitLoadFrame:RegisterUnitEvent("PLAYER_FLAGS_CHANGED", "player");
 end
 

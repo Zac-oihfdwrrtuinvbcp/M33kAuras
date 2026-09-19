@@ -1479,12 +1479,13 @@ Private.load_prototype = {
     },
     {
       name = "vehicle",
-      display = (M33kAuras.IsClassicEra()) and L["On Taxi"] or L["In Vehicle"],
+      display = (M33kAuras.IsClassicEra() or M33kAuras.IsForever()) and L["On Taxi"] or L["In Vehicle"],
       type = "tristate",
       init = "arg",
       width = M33kAuras.normalWidth,
       optional = true,
       events = (M33kAuras.IsClassicEra()) and {"UNIT_FLAGS"}
+               or M33kAuras.IsForever() and {"VEHICLE_UPDATE", "UNIT_ENTERED_VEHICLE", "UNIT_EXITED_VEHICLE", "UNIT_FLAGS"}
                or {"VEHICLE_UPDATE", "UNIT_ENTERED_VEHICLE", "UNIT_EXITED_VEHICLE", "UPDATE_OVERRIDE_ACTIONBAR", "UNIT_FLAGS"}
     },
     {
@@ -10206,6 +10207,10 @@ Private.event_prototypes = {
         else
           tinsert(unit_events, "UNIT_ENTERED_VEHICLE")
           tinsert(unit_events, "UNIT_EXITED_VEHICLE")
+          if M33kAuras.IsForever() then
+            tinsert(unit_events, "UNIT_FLAGS")
+            tinsert(events, "VEHICLE_UPDATE")
+          end
         end
         tinsert(events, "PLAYER_ENTERING_WORLD")
       end

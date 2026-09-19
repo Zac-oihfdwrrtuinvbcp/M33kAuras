@@ -17,6 +17,7 @@ local tests = {
   "talent_cache_test.lua",
   "talent_load_test.lua",
   "talent_trigger_test.lua",
+  "vehicle_test.lua",
 }
 
 local interpreter = arg[-1]

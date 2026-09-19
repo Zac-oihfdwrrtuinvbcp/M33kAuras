@@ -30,7 +30,7 @@ local compiler = section(core, "local function EvalBooleanArg", "function M33kAu
   .. "\nreturn ConstructFunction"
 local assignment = section(core, "  local mounted = IsMounted()", "  vehicle =")
 -- End before the legacy vehicle branches when testing committed source.
-assignment = assignment:match("^(.-)\n  if M33kAuras.IsClassicEra%(%) then") or assignment
+assignment = assignment:match("^(.-)\n  if M33kAuras.IsClassicEra%(%)") or assignment
 local applies = section(buffs, "local function TriggerInfoApplies", "local function FormatAffectedUnaffected")
   .. "\nreturn TriggerInfoApplies"
 local effective = assert(buffs:match("local effectiveRaidRole = ([^\n]+)"))
