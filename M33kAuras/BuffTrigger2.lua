@@ -79,9 +79,6 @@ end
 -- Lua APIs
 local tinsert, wipe = table.insert, wipe
 local pairs, next, type = pairs, next, type
-local UnitAura = UnitAura
-
-local newAPI = M33kAuras.IsRetail()
 
 ---@class M33kAuras
 local M33kAuras = M33kAuras
@@ -305,139 +302,130 @@ local function CheckScanFuncs(scanFuncs, unit, filter, key)
   end
 end
 
--- in 12.1 there is no way to iterate over all auras on the unit while auras are secret
+-- In Midnight 12.1 and Forever, aura enumeration is restricted while auras are secret.
 -- but we can call C_UnitAuras.GetUnitAuraBySpellID for each spell id we're interested in
 -- downside of that workaround is that we can't track multiple instances of the same spell id
 -- and in case there are multiple auras with the same spell id we can't control which aura we are tracking
-local SafeForEachAura
-local aurasAreLocked = select(4, GetBuildInfo()) >= 120100
-if aurasAreLocked then
-  SafeForEachAura = function(unit, filter, maxCount, func, usePackedAura)
-    if not C_Secrets.ShouldAurasBeSecret() then
-      return AuraUtil.ForEachAura(unit, filter, maxCount, func, usePackedAura)
-    else
+local function SafeForEachAura(unit, filter, maxCount, func, usePackedAura)
+  if not C_Secrets.ShouldAurasBeSecret() then
+    return AuraUtil.ForEachAura(unit, filter, maxCount, func, usePackedAura)
+  else
 
-      local sfs = GetSubTable(scanFuncSpellId, unit, filter)
-      if sfs then
-        for spellID in next, sfs do
-          local auraData = C_UnitAuras.GetUnitAuraBySpellID(unit, spellID)
-          if auraData then
-            if (filter == "HELPFUL" and auraData.isHelpful) or (filter == "HARMFUL" and auraData.isHarmful) then
-              func(auraData)
-            end
+    local sfs = GetSubTable(scanFuncSpellId, unit, filter)
+    if sfs then
+      for spellID in next, sfs do
+        local auraData = C_UnitAuras.GetUnitAuraBySpellID(unit, spellID)
+        if auraData then
+          if (filter == "HELPFUL" and auraData.isHelpful) or (filter == "HARMFUL" and auraData.isHarmful) then
+            func(auraData)
           end
         end
       end
+    end
 
-      local sfsg = GetSubTable(scanFuncSpellIdGroup, unit, filter)
-      if sfsg then
-        for spellID in next, sfsg do
-          local auraData = C_UnitAuras.GetUnitAuraBySpellID(unit, spellID)
-          if auraData then
-            if (filter == "HELPFUL" and auraData.isHelpful) or (filter == "HARMFUL" and auraData.isHarmful) then
-              func(auraData)
-            end
+    local sfsg = GetSubTable(scanFuncSpellIdGroup, unit, filter)
+    if sfsg then
+      for spellID in next, sfsg do
+        local auraData = C_UnitAuras.GetUnitAuraBySpellID(unit, spellID)
+        if auraData then
+          if (filter == "HELPFUL" and auraData.isHelpful) or (filter == "HARMFUL" and auraData.isHarmful) then
+            func(auraData)
           end
         end
       end
     end
   end
-else
-  SafeForEachAura = AuraUtil.ForEachAura
 end
 
-local TooltipHelper
-if newAPI then
-  ---@class TooltipHelper
-  ---@field count number
-  ---@field tracks table<string, table<fun(data: any), any>>
-  TooltipHelper = {
-    count = 0,
-    frame = CreateFrame("Frame"),
-    tracks = {
+---@class TooltipHelper
+---@field count number
+---@field tracks table<string, table<fun(data: any), any>>
+local TooltipHelper = {
+  count = 0,
+  frame = CreateFrame("Frame"),
+  tracks = {
 
-    },
-    --- @type fun(self: TooltipHelper, dataInstanceId: number, matchData: table)
-    Track = function(self, dataInstanceID, matchData)
-      self.tracks[dataInstanceID] = self.tracks[dataInstanceID] or {}
-      if not self.tracks[dataInstanceID][matchData] then
-        self.count = self.count + 1
-        self.tracks[dataInstanceID][matchData] = true
-        if self.count == 1 then
-          self.frame:RegisterEvent("TOOLTIP_DATA_UPDATE")
-        end
+  },
+  --- @type fun(self: TooltipHelper, dataInstanceId: number, matchData: table)
+  Track = function(self, dataInstanceID, matchData)
+    self.tracks[dataInstanceID] = self.tracks[dataInstanceID] or {}
+    if not self.tracks[dataInstanceID][matchData] then
+      self.count = self.count + 1
+      self.tracks[dataInstanceID][matchData] = true
+      if self.count == 1 then
+        self.frame:RegisterEvent("TOOLTIP_DATA_UPDATE")
       end
-    end,
-    --- @type fun(self: TooltipHelper, dataInstanceId: number, matchData: table)
-    Untrack = function(self, dataInstanceID, matchData)
-      if self.tracks[dataInstanceID] then
-        if self.tracks[dataInstanceID][matchData] then
-          self.count = self.count - 1
-          self.tracks[dataInstanceID][matchData] = nil
-          if not next(self.tracks[dataInstanceID]) then
-            self.tracks[dataInstanceID] = nil
-          end
-          if self.count == 0 then
-            self.frame:UnregisterEvent("TOOLTIP_DATA_UPDATE")
-          end
+    end
+  end,
+  --- @type fun(self: TooltipHelper, dataInstanceId: number, matchData: table)
+  Untrack = function(self, dataInstanceID, matchData)
+    if self.tracks[dataInstanceID] then
+      if self.tracks[dataInstanceID][matchData] then
+        self.count = self.count - 1
+        self.tracks[dataInstanceID][matchData] = nil
+        if not next(self.tracks[dataInstanceID]) then
+          self.tracks[dataInstanceID] = nil
         end
-      end
-    end,
-    --- @type fun(self: TooltipHelper)
-    Clear = function(self)
-      self.tracks = {}
-      self.frame:UnregisterEvent("TOOLTIP_DATA_UPDATE")
-      self.count = 0
-    end,
-
-    --- @type fun(self: TooltipHelper, matchData: table)
-    HandleMatchData = function(self, matchData)
-      if matchData:UpdateTooltip(GetTime()) then
-        local unit = matchData.unit
-        local key = matchData.auraInstanceID
-        local filter = matchData.filter
-        for id, triggerData in pairs(matchData.auras) do
-          for triggernum in pairs(triggerData) do
-            local matchDataByTriggerAndUnit = GetSubTable(matchDataByTrigger, id, triggernum, unit)
-            if matchDataByTriggerAndUnit and matchDataByTriggerAndUnit[key] then
-              matchDataByTriggerAndUnit[key] = nil
-              matchDataChanged[id] = matchDataChanged[id] or {}
-              matchDataChanged[id][triggernum] = true
-            end
-          end
-        end
-        wipe(matchData.auras)
-
-        local sfn = GetSubTable(scanFuncName, unit, filter, matchData.name)
-        local sfng = GetSubTable(scanFuncNameGroup, unit, filter, matchData.name)
-        local sfs = GetSubTable(scanFuncSpellId, unit, filter, matchData.spellId)
-        local sfsg = GetSubTable(scanFuncSpellIdGroup, unit, filter, matchData.spellId)
-        local sfg = GetSubTable(scanFuncGeneral, unit, filter)
-        local sfgg = GetSubTable(scanFuncGeneralGroup, unit, filter)
-
-        CheckScanFuncs(sfn, unit, filter, key)
-        CheckScanFuncs(sfng, unit, filter, key)
-        CheckScanFuncs(sfs, unit, filter, key)
-        CheckScanFuncs(sfsg, unit, filter, key)
-        CheckScanFuncs(sfg, unit, filter, key)
-        CheckScanFuncs(sfgg, unit, filter, key)
-      end
-    end,
-
-    --- @type fun(self: TooltipHelper, dataInstanceID: number)
-    HandleEvent = function(self, dataInstanceID)
-      if self.tracks[dataInstanceID] then
-        for callbackData in pairs(self.tracks[dataInstanceID]) do
-          self:HandleMatchData(callbackData)
+        if self.count == 0 then
+          self.frame:UnregisterEvent("TOOLTIP_DATA_UPDATE")
         end
       end
     end
-  }
+  end,
+  --- @type fun(self: TooltipHelper)
+  Clear = function(self)
+    self.tracks = {}
+    self.frame:UnregisterEvent("TOOLTIP_DATA_UPDATE")
+    self.count = 0
+  end,
 
-  TooltipHelper.frame:SetScript("OnEvent", function(frame, event, dataInstanceID)
-    TooltipHelper:HandleEvent(dataInstanceID)
-  end)
-end
+  --- @type fun(self: TooltipHelper, matchData: table)
+  HandleMatchData = function(self, matchData)
+    if matchData:UpdateTooltip(GetTime()) then
+      local unit = matchData.unit
+      local key = matchData.auraInstanceID
+      local filter = matchData.filter
+      for id, triggerData in pairs(matchData.auras) do
+        for triggernum in pairs(triggerData) do
+          local matchDataByTriggerAndUnit = GetSubTable(matchDataByTrigger, id, triggernum, unit)
+          if matchDataByTriggerAndUnit and matchDataByTriggerAndUnit[key] then
+            matchDataByTriggerAndUnit[key] = nil
+            matchDataChanged[id] = matchDataChanged[id] or {}
+            matchDataChanged[id][triggernum] = true
+          end
+        end
+      end
+      wipe(matchData.auras)
+
+      local sfn = GetSubTable(scanFuncName, unit, filter, matchData.name)
+      local sfng = GetSubTable(scanFuncNameGroup, unit, filter, matchData.name)
+      local sfs = GetSubTable(scanFuncSpellId, unit, filter, matchData.spellId)
+      local sfsg = GetSubTable(scanFuncSpellIdGroup, unit, filter, matchData.spellId)
+      local sfg = GetSubTable(scanFuncGeneral, unit, filter)
+      local sfgg = GetSubTable(scanFuncGeneralGroup, unit, filter)
+
+      CheckScanFuncs(sfn, unit, filter, key)
+      CheckScanFuncs(sfng, unit, filter, key)
+      CheckScanFuncs(sfs, unit, filter, key)
+      CheckScanFuncs(sfsg, unit, filter, key)
+      CheckScanFuncs(sfg, unit, filter, key)
+      CheckScanFuncs(sfgg, unit, filter, key)
+    end
+  end,
+
+  --- @type fun(self: TooltipHelper, dataInstanceID: number)
+  HandleEvent = function(self, dataInstanceID)
+    if self.tracks[dataInstanceID] then
+      for callbackData in pairs(self.tracks[dataInstanceID]) do
+        self:HandleMatchData(callbackData)
+      end
+    end
+  end
+}
+
+TooltipHelper.frame:SetScript("OnEvent", function(frame, event, dataInstanceID)
+  TooltipHelper:HandleEvent(dataInstanceID)
+end)
 
 local function UpdateToolTipDataInMatchData(matchData, time)
   if matchData.tooltipUpdated == time then
@@ -1838,65 +1826,31 @@ do
 
   PrepareMatchData = function(unit, filter)
     if not matchDataUpToDate[unit] or not matchDataUpToDate[unit][filter] then
-      if newAPI then
-        _time = GetTime()
-        _unit = unit
-        _filter = filter
-        SafeForEachAura(unit, filter, nil, HandleAura, true)
-      else
-        local time = GetTime()
-        local index = 1
-        while true do
-          local name, icon, stacks, debuffClass, duration, expirationTime, unitCaster, isStealable, _, spellId, _, isBossDebuff, isCastByPlayer, _, modRate = UnitAura(unit, index, filter)
-          if not name then
-            break
-          end
-
-          debuffClass = FixDebuffClass(debuffClass, spellId)
-          UpdateMatchData(time, matchDataChanged, unit, index, nil, filter, name, icon, stacks, debuffClass, duration, expirationTime, unitCaster, isStealable, isBossDebuff, isCastByPlayer, spellId, modRate, nil)
-          index = index + 1
-        end
-      end
+      _time = GetTime()
+      _unit = unit
+      _filter = filter
+      SafeForEachAura(unit, filter, nil, HandleAura, true)
       matchDataUpToDate[unit] = matchDataUpToDate[unit] or {}
       matchDataUpToDate[unit][filter] = true
     end
   end
 end
 
-local function CleanUpOutdatedMatchData(removeIndex, unit, filter)
-  -- Figure out if any matchData is outdated
-  if newAPI then
-    -- clean everything, as ScanUnitWithFilter is only used with index = 1 to wipe all data with newAPI
-    if matchData[unit] and matchData[unit][filter] then
-      for auraInstanceID, data in pairs(matchData[unit][filter]) do
-        for id, triggerData in pairs(data.auras) do
-          for triggernum in pairs(triggerData) do
-            matchDataByTrigger[id][triggernum][unit][auraInstanceID] = nil
-            matchDataChanged[id] = matchDataChanged[id] or {}
-            matchDataChanged[id][triggernum] = true
-          end
-        end
-        if data.dataInstanceID then
-          TooltipHelper:Untrack(data.dataInstanceID, data)
-        end
-        matchData[unit][filter][auraInstanceID] = nil
-      end
-    end
-  else
-    if matchData[unit] and matchData[unit][filter] then
-      for index = removeIndex, #matchData[unit][filter] do
-        local data = matchData[unit][filter][index]
-        if (data and data.index >= removeIndex) or not UnitExistsFixed(unit) then
-           matchData[unit][filter][index] = nil
-           for id, triggerData in pairs(data.auras) do
-             for triggernum in pairs(triggerData) do
-               matchDataByTrigger[id][triggernum][unit][index] = nil
-               matchDataChanged[id] = matchDataChanged[id] or {}
-               matchDataChanged[id][triggernum] = true
-             end
-           end
+local function CleanUpOutdatedMatchData(unit, filter)
+  -- Clear cached aura instances before a full scan or when tracking stops.
+  if matchData[unit] and matchData[unit][filter] then
+    for auraInstanceID, data in pairs(matchData[unit][filter]) do
+      for id, triggerData in pairs(data.auras) do
+        for triggernum in pairs(triggerData) do
+          matchDataByTrigger[id][triggernum][unit][auraInstanceID] = nil
+          matchDataChanged[id] = matchDataChanged[id] or {}
+          matchDataChanged[id][triggernum] = true
         end
       end
+      if data.dataInstanceID then
+        TooltipHelper:Untrack(data.dataInstanceID, data)
+      end
+      matchData[unit][filter][auraInstanceID] = nil
     end
   end
 end
@@ -1975,87 +1929,61 @@ do
       if matchDataUpToDate[unit] then
         matchDataUpToDate[unit][filter] = nil
       end
-      CleanUpOutdatedMatchData(1, unit, filter)
+      CleanUpOutdatedMatchData(unit, filter)
       return
     end
 
     if UnitExistsFixed(unit) then
-      if newAPI then
-        -- copy parameters passed to ScanUnitWithFilter in parent's scope for HandleAura
-        _matchDataChanged, _time, _unit, _filter, _scanFuncNameGroup, _scanFuncSpellIdGroup, _scanFuncGeneralGroup, _scanFuncName, _scanFuncSpellId, _scanFuncGeneral = matchDataChanged, time, unit, filter, scanFuncNameGroup, scanFuncSpellIdGroup, scanFuncGeneralGroup, scanFuncName, scanFuncSpellId, scanFuncGeneral
-        if unitAuraUpdateInfo then
-          -- incremental
-          if unitAuraUpdateInfo.addedAuras ~= nil then
-            for _, aura in ipairs(unitAuraUpdateInfo.addedAuras) do
-              local isHelpful = not C_UnitAuras.IsAuraFilteredOutByInstanceID(unit, aura.auraInstanceID, "HELPFUL")
-              local isHarmful = not C_UnitAuras.IsAuraFilteredOutByInstanceID(unit, aura.auraInstanceID, "HARMFUL")
-              if (isHelpful and filter == "HELPFUL") or (isHarmful and filter == "HARMFUL") then
-                HandleAura(aura)
-              end
+      -- copy parameters passed to ScanUnitWithFilter in parent's scope for HandleAura
+      _matchDataChanged, _time, _unit, _filter, _scanFuncNameGroup, _scanFuncSpellIdGroup, _scanFuncGeneralGroup, _scanFuncName, _scanFuncSpellId, _scanFuncGeneral = matchDataChanged, time, unit, filter, scanFuncNameGroup, scanFuncSpellIdGroup, scanFuncGeneralGroup, scanFuncName, scanFuncSpellId, scanFuncGeneral
+      if unitAuraUpdateInfo then
+        -- incremental
+        if unitAuraUpdateInfo.addedAuras ~= nil then
+          for _, aura in ipairs(unitAuraUpdateInfo.addedAuras) do
+            local isHelpful = not C_UnitAuras.IsAuraFilteredOutByInstanceID(unit, aura.auraInstanceID, "HELPFUL")
+            local isHarmful = not C_UnitAuras.IsAuraFilteredOutByInstanceID(unit, aura.auraInstanceID, "HARMFUL")
+            if (isHelpful and filter == "HELPFUL") or (isHarmful and filter == "HARMFUL") then
+              HandleAura(aura)
             end
           end
+        end
 
-          if unitAuraUpdateInfo.updatedAuraInstanceIDs ~= nil then
-            for _, auraInstanceID in ipairs(unitAuraUpdateInfo.updatedAuraInstanceIDs) do
-              local isHelpful = not C_UnitAuras.IsAuraFilteredOutByInstanceID(unit, auraInstanceID, "HELPFUL")
-              local isHarmful = not C_UnitAuras.IsAuraFilteredOutByInstanceID(unit, auraInstanceID, "HARMFUL")
-              if (isHelpful and filter == "HELPFUL") or (isHarmful and filter == "HARMFUL") then
-                local aura = C_UnitAuras.GetAuraDataByAuraInstanceID(unit, auraInstanceID)
-                HandleAura(aura)
-              end
+        if unitAuraUpdateInfo.updatedAuraInstanceIDs ~= nil then
+          for _, auraInstanceID in ipairs(unitAuraUpdateInfo.updatedAuraInstanceIDs) do
+            local isHelpful = not C_UnitAuras.IsAuraFilteredOutByInstanceID(unit, auraInstanceID, "HELPFUL")
+            local isHarmful = not C_UnitAuras.IsAuraFilteredOutByInstanceID(unit, auraInstanceID, "HARMFUL")
+            if (isHelpful and filter == "HELPFUL") or (isHarmful and filter == "HARMFUL") then
+              local aura = C_UnitAuras.GetAuraDataByAuraInstanceID(unit, auraInstanceID)
+              HandleAura(aura)
             end
           end
+        end
 
-          if unitAuraUpdateInfo.removedAuraInstanceIDs ~= nil then
-            for _, auraInstanceID in ipairs(unitAuraUpdateInfo.removedAuraInstanceIDs) do
-              if matchData[unit] and matchData[unit][filter] then
-                local data = matchData[unit][filter][auraInstanceID]
-                if data then
-                  matchData[unit][filter][auraInstanceID] = nil
-                  for id, triggerData in pairs(data.auras) do
-                    for triggernum in pairs(triggerData) do
-                      matchDataByTrigger[id][triggernum][unit][auraInstanceID] = nil
-                      matchDataChanged[id] = matchDataChanged[id] or {}
-                      matchDataChanged[id][triggernum] = true
-                    end
+        if unitAuraUpdateInfo.removedAuraInstanceIDs ~= nil then
+          for _, auraInstanceID in ipairs(unitAuraUpdateInfo.removedAuraInstanceIDs) do
+            if matchData[unit] and matchData[unit][filter] then
+              local data = matchData[unit][filter][auraInstanceID]
+              if data then
+                matchData[unit][filter][auraInstanceID] = nil
+                for id, triggerData in pairs(data.auras) do
+                  for triggernum in pairs(triggerData) do
+                    matchDataByTrigger[id][triggernum][unit][auraInstanceID] = nil
+                    matchDataChanged[id] = matchDataChanged[id] or {}
+                    matchDataChanged[id][triggernum] = true
                   end
-                  if data.dataInstanceID then
-                    TooltipHelper:Untrack(data.dataInstanceID, data)
-                  end
+                end
+                if data.dataInstanceID then
+                  TooltipHelper:Untrack(data.dataInstanceID, data)
                 end
               end
             end
           end
-        else
-          -- full
-          -- clean first
-          CleanUpOutdatedMatchData(nil, unit, filter)
-          SafeForEachAura(unit, filter, nil, HandleAura, true)
         end
       else
-        local index = 1
-        while true do
-          local name, icon, stacks, debuffClass, duration, expirationTime, unitCaster, isStealable, _, spellId, _, isBossDebuff, isCastByPlayer, _, modRate = UnitAura(unit, index, filter)
-          if not name then
-            break
-          end
-
-          debuffClass = FixDebuffClass(debuffClass, spellId)
-
-          local updatedMatchData = UpdateMatchData(time, matchDataChanged, unit, index, nil, filter, name, icon, stacks, debuffClass, duration, expirationTime, unitCaster, isStealable, isBossDebuff, isCastByPlayer, spellId, modRate, nil)
-
-          if updatedMatchData then -- Aura data changed, check against triggerInfos
-            CheckScanFuncs(scanFuncName and scanFuncName[name], unit, filter, index)
-            CheckScanFuncs(scanFuncNameGroup and scanFuncNameGroup[name], unit, filter, index)
-            CheckScanFuncs(scanFuncSpellId and scanFuncSpellId[spellId], unit, filter, index)
-            CheckScanFuncs(scanFuncSpellIdGroup and scanFuncSpellIdGroup[spellId], unit, filter, index)
-            CheckScanFuncs(scanFuncGeneral, unit, filter, index)
-            CheckScanFuncs(scanFuncGeneralGroup, unit, filter, index)
-          end
-          index = index + 1
-        end
-
-        CleanUpOutdatedMatchData(index, unit, filter)
+        -- full
+        -- clean first
+        CleanUpOutdatedMatchData(unit, filter)
+        SafeForEachAura(unit, filter, nil, HandleAura, true)
       end
     end
 
@@ -2319,9 +2247,7 @@ local function EventHandler(frame, event, arg1, arg2, ...)
       if not UnitExistsFixed(unit) then
         tinsert(unitsToRemove, unit)
       else
-        if newAPI then
-          ScanUnit(time, unit)
-        end
+        ScanUnit(time, unit)
       end
     end
   elseif event =="ARENA_OPPONENT_UPDATE" then
@@ -2363,35 +2289,18 @@ local function EventHandler(frame, event, arg1, arg2, ...)
       arg1 = brokenUnitMap[arg1]
     end
 
-    if newAPI then
-      -- arg1: unit
-      -- arg2: unitAuraUpdateInfo
-      if arg2 == nil or issecretvalue(arg2.isFullUpdate) or arg2.isFullUpdate or issecretvalue(arg2.addedAuras) or issecretvalue(arg2.removedAuraInstanceIDs) or issecretvalue(arg2.updatedAuraInstanceIDs) then
-        ScanUnit(time, arg1)
-      else
-        ScanUnit(time, arg1, arg2)
-      end
-    else
+    -- arg1: unit
+    -- arg2: unitAuraUpdateInfo
+    if arg2 == nil or issecretvalue(arg2.isFullUpdate) or arg2.isFullUpdate or issecretvalue(arg2.addedAuras) or issecretvalue(arg2.removedAuraInstanceIDs) or issecretvalue(arg2.updatedAuraInstanceIDs) then
       ScanUnit(time, arg1)
+    else
+      ScanUnit(time, arg1, arg2)
     end
   elseif event == "PLAYER_ENTERING_WORLD" then
     for unit in pairs(matchData) do
       ScanUnit(time, unit)
       if not UnitExistsFixed(unit) then
         tinsert(unitsToRemove, unit)
-      end
-    end
-
-    if arg1 then
-      -- Initial login has an where the tooltip information is not available,
-      -- so update tooltips 2s after login.
-      -- With newApi we have TOOLTIP_DATA_UPDATE to update the tooltips
-      if not newAPI then
-        C_Timer.After(3, function()
-          for unit, matchDataPerUnit in pairs(matchData) do
-            EventHandler(frame, "UNIT_AURA", unit)
-          end
-        end)
       end
     end
   elseif event == "ADDON_RESTRICTION_STATE_CHANGED" then
@@ -2648,9 +2557,7 @@ function BuffTrigger.UnloadAll()
     PerUnitFrames:UnregisterAll()
   end
 
-  if newAPI then
-    TooltipHelper:Clear()
-  end
+  TooltipHelper:Clear()
 
   wipe(scanFuncName)
   wipe(scanFuncSpellId)
@@ -3366,24 +3273,13 @@ end
 
 --- @return boolean
 function BuffTrigger.SetToolTip(trigger, state)
-  if newAPI then
-    if not state.unit or not state.auraInstanceID then
-      return false
-    end
-    if state.filter == "HELPFUL" then
-      GameTooltip:SetUnitBuffByAuraInstanceID(state.unit, state.auraInstanceID, state.filter)
-    elseif state.filter == "HARMFUL" then
-      GameTooltip:SetUnitDebuffByAuraInstanceID(state.unit, state.auraInstanceID, state.filter)
-    end
-  else
-    if not state.unit or not state.index then
-      return false
-    end
-    if state.filter == "HELPFUL" then
-      GameTooltip:SetUnitBuff(state.unit, state.index, state.filter)
-    elseif state.filter == "HARMFUL" then
-      GameTooltip:SetUnitDebuff(state.unit, state.index, state.filter)
-    end
+  if not state.unit or not state.auraInstanceID then
+    return false
+  end
+  if state.filter == "HELPFUL" then
+    GameTooltip:SetUnitBuffByAuraInstanceID(state.unit, state.auraInstanceID, state.filter)
+  elseif state.filter == "HARMFUL" then
+    GameTooltip:SetUnitDebuffByAuraInstanceID(state.unit, state.auraInstanceID, state.filter)
   end
   return true
 end
@@ -4173,26 +4069,8 @@ do
   end
 
   AugmentMatchDataMulti = function(matchData, unit, filter, sourceGUID, nameKey, spellKey)
-    if newAPI then
-      _matchData, _unit, _sourceGUID, _nameKey, _spellKey = matchData, unit, sourceGUID, nameKey, spellKey
-      SafeForEachAura(unit, filter, nil, HandleAura, true)
-    else
-      local index = 1
-      while true do
-        local name, icon, stacks, debuffClass, duration, expirationTime, unitCaster, isStealable, _, spellId, _, _, _, _, modRate = UnitAura(unit, index, filter)
-        if not name then
-          return false
-        end
-
-        debuffClass = FixDebuffClass(debuffClass, spellId)
-        local auraSourceGuid = unitCaster and UnitGUID(unitCaster)
-        if (name == nameKey or spellId == spellKey) and sourceGUID == auraSourceGuid then
-          local changed = AugmentMatchDataMultiWith(matchData, unit, name, icon, stacks, debuffClass, duration, expirationTime, unitCaster, isStealable, _, spellId, _, _, _, _, modRate)
-          return changed
-        end
-        index = index + 1
-      end
-    end
+    _matchData, _unit, _sourceGUID, _nameKey, _spellKey = matchData, unit, sourceGUID, nameKey, spellKey
+    SafeForEachAura(unit, filter, nil, HandleAura, true)
   end
 end
 
@@ -4298,46 +4176,9 @@ do
   end
 
   CheckAurasMulti = function(base, unit, filter)
-    if newAPI then
-      _base = base
-      _unit = unit
-      SafeForEachAura(unit, filter, nil, HandleAura, true)
-    else
-      local index = 1
-      while true do
-        local name, icon, stacks, debuffClass, duration, expirationTime, unitCaster, isStealable, _, spellId, _, _, _, _, modRate = UnitAura(unit, index, filter)
-        if not name then
-          return false
-        end
-
-        debuffClass = FixDebuffClass(debuffClass, spellId)
-
-        local auraCasterGUID = unitCaster and UnitGUID(unitCaster)
-        if base[name] and base[name][auraCasterGUID] then
-          local changed = AugmentMatchDataMultiWith(base[name][auraCasterGUID], unit, name, icon, stacks, debuffClass, duration, expirationTime, unitCaster, isStealable, _, spellId, _, _, _, _, modRate)
-          if changed then
-            for id, idData in pairs(base[name][auraCasterGUID].auras) do
-              for triggernum in pairs(idData) do
-                matchDataChanged[id] = matchDataChanged[id] or {}
-                matchDataChanged[id][triggernum] = true
-              end
-            end
-          end
-        end
-        if base[spellId] and base[spellId][auraCasterGUID] then
-          local changed = AugmentMatchDataMultiWith(base[spellId][auraCasterGUID], unit, name, icon, stacks, debuffClass, duration, expirationTime, unitCaster, isStealable, _, spellId, _, _, _, _, modRate)
-          if changed then
-            for id, idData in pairs(base[spellId][auraCasterGUID].auras) do
-              for triggernum in pairs(idData) do
-                matchDataChanged[id] = matchDataChanged[id] or {}
-                matchDataChanged[id][triggernum] = true
-              end
-            end
-          end
-        end
-        index = index + 1
-      end
-    end
+    _base = base
+    _unit = unit
+    SafeForEachAura(unit, filter, nil, HandleAura, true)
   end
 end
 
