@@ -2510,6 +2510,21 @@ function Private.Modernize(data, oldSnapshot)
     end
   end
 
+  if data.internalVersion < 90 and data.load then
+    local load = data.load
+    if load.use_hardcore ~= nil and load.use_ruleset == nil and load.ruleset == nil then
+      if load.use_hardcore then
+        load.use_ruleset = true
+        load.ruleset = {single = "Hardcore", multi = {Hardcore = true}}
+      else
+        load.use_ruleset = false
+        load.ruleset = {multi = {PvE = true, PvP = true, RP = true}}
+      end
+    end
+    load.use_hardcore = nil
+    load.hardcore = nil
+  end
+
   data.internalVersion = max(data.internalVersion or 0, M33kAuras.InternalVersion())
 end
 

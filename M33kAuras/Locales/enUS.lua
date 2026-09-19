@@ -1,6 +1,10 @@
 local L = M33kAuras.L
 
 -- M33kAuras
+L["Game Mode"] = "Game Mode"
+L["PvE"] = "PvE"
+L["PvP"] = "PvP"
+L["RP"] = "RP"
 L[ [=[ Filter formats: 'Name', 'Name-Realm', '-Realm'.
 
 Supports multiple entries, separated by commas

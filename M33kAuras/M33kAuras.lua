@@ -4,7 +4,7 @@ local AddonName = ...
 ---@class Private
 local Private = select(2, ...)
 
-local internalVersion = 89
+local internalVersion = 90
 
 -- Lua APIs
 local insert = table.insert
@@ -1785,10 +1785,17 @@ local function scanForLoadsImpl(toCheck, event, arg1, ...)
     warmodeActive = C_PvP.IsWarModeDesired();
   end
 
-  local hardcore, runeEngraving = false, false
-  if M33kAuras.IsClassicEra() then
-    hardcore = C_GameRules.IsHardcoreActive()
-    runeEngraving = C_Engraving.IsEngravingEnabled()
+  local ruleset
+  if M33kAuras.IsForever() then
+    if C_GameRules.IsGameRuleActive(Enum.GameRule.HardcoreRuleset) then
+      ruleset = "Hardcore"
+    elseif C_GameRules.IsGameRuleActive(Enum.GameRule.RPRuleset) then
+      ruleset = "RP"
+    elseif C_GameRules.IsGameRuleActive(Enum.GameRule.PvPRuleset) then
+      ruleset = "PvP"
+    else
+      ruleset = "PvE"
+    end
   end
 
   local pvp = false
@@ -1825,8 +1832,8 @@ local function scanForLoadsImpl(toCheck, event, arg1, ...)
       -- else
       -- if M33kAuras.IsRetail() then
       if M33kAuras.IsForever() then
-        shouldBeLoaded = loadFunc and loadFunc("ScanForLoads_Auras", inCombat, alive, inEncounter, pvp, vehicle, mounted, addonRestrictionsActive, class, player, realm, guild, race, faction, playerLevel, raidRole, group, groupSize, raidMemberType, zone, zoneId, zonegroupId, instanceId, minimapText, encounter_id, size, difficulty, difficultyIndex)
-        couldBeLoaded =  loadOpt and loadOpt("ScanForLoads_Auras",   inCombat, alive, inEncounter, pvp, vehicle, mounted, addonRestrictionsActive, class, player, realm, guild, race, faction, playerLevel, raidRole, group, groupSize, raidMemberType, zone, zoneId, zonegroupId, instanceId, minimapText, encounter_id, size, difficulty, difficultyIndex)
+        shouldBeLoaded = loadFunc and loadFunc("ScanForLoads_Auras", inCombat, alive, inEncounter, pvp, vehicle, mounted, addonRestrictionsActive, ruleset, class, player, realm, guild, race, faction, playerLevel, raidRole, group, groupSize, raidMemberType, zone, zoneId, zonegroupId, instanceId, minimapText, encounter_id, size, difficulty, difficultyIndex)
+        couldBeLoaded =  loadOpt and loadOpt("ScanForLoads_Auras",   inCombat, alive, inEncounter, pvp, vehicle, mounted, addonRestrictionsActive, ruleset, class, player, realm, guild, race, faction, playerLevel, raidRole, group, groupSize, raidMemberType, zone, zoneId, zonegroupId, instanceId, minimapText, encounter_id, size, difficulty, difficultyIndex)
       else
         shouldBeLoaded = loadFunc and loadFunc("ScanForLoads_Auras", inCombat, alive, inEncounter, warmodeActive, inPetBattle, vehicle, vehicleUi, dragonriding, mounted, addonRestrictionsActive, specId, player, realm, guild, race, faction, playerLevel, effectiveLevel, role, position, group, groupSize, raidMemberType, zone, zoneId, zonegroupId, instanceId, minimapText, encounter_id, size, difficulty, difficultyIndex, affixes)
         couldBeLoaded =  loadOpt and loadOpt("ScanForLoads_Auras",   inCombat, alive, inEncounter, warmodeActive, inPetBattle, vehicle, vehicleUi, dragonriding, mounted, addonRestrictionsActive, specId, player, realm, guild, race, faction, playerLevel, effectiveLevel, role, position, group, groupSize, raidMemberType, zone, zoneId, zonegroupId, instanceId, minimapText, encounter_id, size, difficulty, difficultyIndex, affixes)

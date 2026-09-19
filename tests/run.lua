@@ -15,6 +15,7 @@ local tests = {
   "common_options_test.lua",
   "pvp_flag_test.lua",
   "raid_role_test.lua",
+  "ruleset_load_test.lua",
   "talent_cache_test.lua",
   "talent_load_test.lua",
   "talent_trigger_test.lua",
