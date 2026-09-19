@@ -12,6 +12,7 @@ local tests = {
   "animations_test.lua",
   "aura_environment_test.lua",
   "aura_environment_stack_test.lua",
+  "character_stats_test.lua",
   "common_options_test.lua",
   "instance_test.lua",
   "pvp_flag_test.lua",

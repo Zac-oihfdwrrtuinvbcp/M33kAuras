@@ -18,7 +18,15 @@ local knownEvents = {
 }
 
 local secretState = nil
+local secretStatsState = nil
 local function HandleEvent(_, event, ...)
+  if M33kAuras.IsRetail() or M33kAuras.IsForever() then
+    local newSecretStatsState = C_Secrets.ShouldUnitStatsBeSecret()
+    if secretStatsState ~= newSecretStatsState then
+      secretStatsState = newSecretStatsState
+      Private.ScanEvents("WA_UNIT_STATS_SECRET_STATE_UPDATE")
+    end
+  end
   local newSecretState = C_Secrets.ShouldAurasBeSecret() or C_Secrets.ShouldCooldownsBeSecret()
   if secretState ~= newSecretState then
     -- if not knownEvents[event] and event ~= "ADDON_LOADED" then

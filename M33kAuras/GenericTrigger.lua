@@ -5196,11 +5196,14 @@ Private.ExecEnv.IsEquippedItemType = function(itemType, itemSlot)
   end
 end
 
----@return integer critChance
+---@return number? critChance
 M33kAuras.GetCritChance = function()
   -- Based on what the wow paper doll does
   if C_Secrets.ShouldUnitStatsBeSecret() then
-    return 0
+    return nil
+  end
+  if M33kAuras.IsForever() then
+    return max(GetSpellCritChance(), GetRangedCritChance(), GetCritChance())
   end
   local spellCrit = 0
   for i = 2, MAX_SPELL_SCHOOLS or 7 do -- WORKAROUND: MAX_SPELL_SCHOOLS is nil on classic_era
@@ -5209,15 +5212,34 @@ M33kAuras.GetCritChance = function()
   return max(spellCrit, GetRangedCritChance(), GetCritChance())
 end
 
----@return number hitChance
+---@return number? hitChance
 M33kAuras.GetHitChance = function()
   if C_Secrets.ShouldUnitStatsBeSecret() then
-    return 0
+    return nil
   end
   local melee = (GetCombatRatingBonus(CR_HIT_MELEE) or 0) + (GetHitModifier() or 0)
-  local ranged = (GetCombatRatingBonus(CR_HIT_RANGED) or 0) + (GetHitModifier() or 0)
+  local rangedModifier = M33kAuras.IsForever() and GetRangedHitModifier() or GetHitModifier()
+  local ranged = (GetCombatRatingBonus(CR_HIT_RANGED) or 0) + (rangedModifier or 0)
   local spell = (GetCombatRatingBonus(CR_HIT_SPELL) or 0) + (GetSpellHitModifier() or 0)
   return max(melee, ranged, spell)
+end
+
+---@return number? haste
+M33kAuras.GetHaste = function()
+  if C_Secrets.ShouldUnitStatsBeSecret() then
+    return nil
+  end
+  local rangedHaste, ammoHaste = GetRangedHaste()
+  return max(UnitSpellHaste("player"), GetMeleeHaste(), rangedHaste + ammoHaste)
+end
+
+---@return number? defense
+M33kAuras.GetDefense = function()
+  if C_Secrets.ShouldUnitStatsBeSecret() then
+    return nil
+  end
+  local base, modifier = UnitDefenseSkill("player")
+  return max(0, base + modifier)
 end
 
 ---@type fun(trigger: triggerData)

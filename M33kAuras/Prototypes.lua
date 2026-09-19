@@ -1273,19 +1273,26 @@ function M33kAuras.GetNumSetItemsEquipped(setID)
   return equipped, 18, setName
 end
 
----@return number result
+---@return number? result
 function M33kAuras.GetEffectiveAttackPower()
   local base, pos, neg = UnitAttackPower("player")
   if hasanysecretvalues(base, pos, neg) then
-    return 0
+    return nil
   end
   return base + pos + neg
 end
 
---- @type fun(): number
+--- @type fun(): number?
 function M33kAuras.GetEffectiveSpellPower()
   if C_Secrets.ShouldUnitStatsBeSecret() then
-    return 0
+    return nil
+  end
+  if M33kAuras.IsForever() then
+    local spellPower = GetSpellBonusDamage(2)
+    for i = 3, MAX_SPELL_SCHOOLS or 7 do
+      spellPower = min(spellPower, GetSpellBonusDamage(i))
+    end
+    return spellPower
   end
   -- Straight from the PaperDoll
   local spellPower = 0
@@ -9375,17 +9382,27 @@ Private.event_prototypes = {
   ["Character Stats"] = {
     type = "unit",
     name = L["Character Stats"],
-    events = {
-      ["events"] = {
-        "COMBAT_RATING_UPDATE",
-        "PLAYER_TARGET_CHANGED"
-      },
-      ["unit_events"] = {
-        ["player"] = {"UNIT_STATS", "UNIT_ATTACK_POWER", "UNIT_AURA", "PLAYER_DAMAGE_DONE_MODS", "UNIT_RESISTANCES"}
+    events = function()
+      local events = {
+        events = {"COMBAT_RATING_UPDATE", "PLAYER_TARGET_CHANGED"},
+        unit_events = {
+          player = {"UNIT_STATS", "UNIT_ATTACK_POWER", "UNIT_AURA", "PLAYER_DAMAGE_DONE_MODS", "UNIT_RESISTANCES"}
+        }
       }
-    },
+      if M33kAuras.IsForever() then
+        tinsert(events.events, "SPELL_POWER_CHANGED")
+        tinsert(events.events, "SKILL_LINES_CHANGED")
+        tinsert(events.unit_events.player, "UNIT_SPELL_HASTE")
+        tinsert(events.unit_events.player, "UNIT_ATTACK_SPEED")
+        tinsert(events.unit_events.player, "UNIT_DEFENSE")
+      end
+      return events
+    end,
     internal_events = function(trigger, untrigger)
       local events = { "WA_DELAYED_PLAYER_ENTERING_WORLD" }
+      if M33kAuras.IsRetail() or M33kAuras.IsForever() then
+        tinsert(events, "WA_UNIT_STATS_SECRET_STATE_UPDATE")
+      end
       if trigger.use_moveSpeed then
         tinsert(events, "PLAYER_MOVE_SPEED_UPDATE")
       end
@@ -9432,9 +9449,9 @@ Private.event_prototypes = {
         name = "strength",
         display = L["Strength"],
         type = "number",
-        init = "UnitStat('player', LE_UNIT_STAT_STRENGTH)",
+        init = M33kAuras.IsForever() and "select(2, UnitStat('player', LE_UNIT_STAT_STRENGTH))" or "UnitStat('player', LE_UNIT_STAT_STRENGTH)",
         store = true,
-        enable = M33kAuras.IsClassicOrWrathOrCataOrMists(),
+        enable = M33kAuras.IsClassicOrWrathOrCataOrMists() or M33kAuras.IsForever(),
         conditionType = "number",
         hidden = M33kAuras.IsRetail(),
         multiEntry = {
@@ -9446,9 +9463,9 @@ Private.event_prototypes = {
         name = "agility",
         display = L["Agility"],
         type = "number",
-        init = "UnitStat('player', LE_UNIT_STAT_AGILITY)",
+        init = M33kAuras.IsForever() and "select(2, UnitStat('player', LE_UNIT_STAT_AGILITY))" or "UnitStat('player', LE_UNIT_STAT_AGILITY)",
         store = true,
-        enable = M33kAuras.IsClassicOrWrathOrCataOrMists(),
+        enable = M33kAuras.IsClassicOrWrathOrCataOrMists() or M33kAuras.IsForever(),
         conditionType = "number",
         hidden = M33kAuras.IsRetail(),
         multiEntry = {
@@ -9460,9 +9477,9 @@ Private.event_prototypes = {
         name = "intellect",
         display = L["Intellect"],
         type = "number",
-        init = "UnitStat('player', LE_UNIT_STAT_INTELLECT)",
+        init = M33kAuras.IsForever() and "select(2, UnitStat('player', LE_UNIT_STAT_INTELLECT))" or "UnitStat('player', LE_UNIT_STAT_INTELLECT)",
         store = true,
-        enable = M33kAuras.IsClassicOrWrathOrCataOrMists(),
+        enable = M33kAuras.IsClassicOrWrathOrCataOrMists() or M33kAuras.IsForever(),
         conditionType = "number",
         hidden = M33kAuras.IsRetail(),
         multiEntry = {
@@ -9474,9 +9491,9 @@ Private.event_prototypes = {
         name = "spirit",
         display = L["Spirit"],
         type = "number",
-        init = "UnitStat('player', 5)",
+        init = M33kAuras.IsForever() and "select(2, UnitStat('player', 5))" or "UnitStat('player', 5)",
         store = true,
-        enable = M33kAuras.IsClassicOrWrathOrCataOrMists(),
+        enable = M33kAuras.IsClassicOrWrathOrCataOrMists() or M33kAuras.IsForever(),
         conditionType = "number",
         hidden = M33kAuras.IsRetail(),
         multiEntry = {
@@ -9488,7 +9505,8 @@ Private.event_prototypes = {
         name = "stamina",
         display = L["Stamina"],
         type = "number",
-        init = "not statsAreSecret and (select(2, UnitStat('player', LE_UNIT_STAT_STAMINA)) * GetUnitMaxHealthModifier('player')) or 0",
+        init = M33kAuras.IsForever() and "select(2, UnitStat('player', LE_UNIT_STAT_STAMINA))"
+          or "not statsAreSecret and (select(2, UnitStat('player', LE_UNIT_STAT_STAMINA)) * GetUnitMaxHealthModifier('player')) or nil",
         store = true,
         conditionType = "number",
         multiEntry = {
@@ -9505,7 +9523,7 @@ Private.event_prototypes = {
         name = "criticalrating",
         display = L["Critical Rating"],
         type = "number",
-        init = "not statsAreSecret and max(GetCombatRating(CR_CRIT_MELEE), GetCombatRating(CR_CRIT_RANGED), GetCombatRating(CR_CRIT_SPELL)) or 0",
+        init = "not statsAreSecret and max(GetCombatRating(CR_CRIT_MELEE), GetCombatRating(CR_CRIT_RANGED), GetCombatRating(CR_CRIT_SPELL)) or nil",
         store = true,
         enable = M33kAuras.IsWrathOrCataOrMistsOrRetail(),
         conditionType = "number",
@@ -9532,7 +9550,7 @@ Private.event_prototypes = {
         name = "hitrating",
         display = L["Hit Rating"],
         type = "number",
-        init = "not statsAreSecret and max(GetCombatRating(CR_HIT_MELEE), GetCombatRating(CR_HIT_RANGED), GetCombatRating(CR_HIT_SPELL)) or 0",
+        init = "not statsAreSecret and max(GetCombatRating(CR_HIT_MELEE), GetCombatRating(CR_HIT_RANGED), GetCombatRating(CR_HIT_SPELL)) or nil",
         store = true,
         enable = M33kAuras.IsWrathOrCataOrMists(),
         conditionType = "number",
@@ -9549,8 +9567,8 @@ Private.event_prototypes = {
         init = "M33kAuras.GetHitChance()",
         store = true,
         conditionType = "number",
-        enable = M33kAuras.IsWrathOrCataOrMists(),
-        hidden = not M33kAuras.IsWrathOrCataOrMists(),
+        enable = M33kAuras.IsWrathOrCataOrMists() or M33kAuras.IsForever(),
+        hidden = not (M33kAuras.IsWrathOrCataOrMists() or M33kAuras.IsForever()),
         multiEntry = {
           operator = "and",
           limit = 2
@@ -9575,7 +9593,7 @@ Private.event_prototypes = {
         name = "hastepercent",
         display = L["Haste (%)"],
         type = "number",
-        init = "GetHaste()",
+        init = M33kAuras.IsForever() and "M33kAuras.GetHaste()" or "GetHaste()",
         store = true,
         conditionType = "number",
         multiEntry = {
@@ -9591,8 +9609,8 @@ Private.event_prototypes = {
         init = "GetMeleeHaste()",
         store = true,
         conditionType = "number",
-        enable = M33kAuras.IsWrathOrCataOrMists(),
-        hidden = not M33kAuras.IsWrathOrCataOrMists(),
+        enable = M33kAuras.IsWrathOrCataOrMists() or M33kAuras.IsForever(),
+        hidden = not (M33kAuras.IsWrathOrCataOrMists() or M33kAuras.IsForever()),
         multiEntry = {
           operator = "and",
           limit = 2
@@ -9615,13 +9633,13 @@ Private.event_prototypes = {
       },
       {
         name = "expertisebonus",
-        display = L["Expertise Bonus"],
+        display = M33kAuras.IsForever() and L["Expertise (%)"] or L["Expertise Bonus"],
         type = "number",
-        init = "GetCombatRatingBonus(CR_EXPERTISE)",
+        init = M33kAuras.IsForever() and "not statsAreSecret and max(GetExpertise()) or nil" or "GetCombatRatingBonus(CR_EXPERTISE)",
         store = true,
         conditionType = "number",
-        enable = M33kAuras.IsWrathOrCataOrMists(),
-        hidden = not M33kAuras.IsWrathOrCataOrMists(),
+        enable = M33kAuras.IsWrathOrCataOrMists() or M33kAuras.IsForever(),
+        hidden = not (M33kAuras.IsWrathOrCataOrMists() or M33kAuras.IsForever()),
         multiEntry = {
           operator = "and",
           limit = 2
@@ -9643,13 +9661,13 @@ Private.event_prototypes = {
       },
       {
         name = "armorpenpercent",
-        display = L["Armor Peneration Percent"],
+        display = M33kAuras.IsForever() and L["Armor Penetration"] or L["Armor Peneration Percent"],
         type = "number",
         init = "GetArmorPenetration()",
         store = true,
         conditionType = "number",
-        enable = M33kAuras.IsWrathClassic(),
-        hidden = not M33kAuras.IsWrathClassic(),
+        enable = M33kAuras.IsWrathClassic() or M33kAuras.IsForever(),
+        hidden = not (M33kAuras.IsWrathClassic() or M33kAuras.IsForever()),
         multiEntry = {
           operator = "and",
           limit = 2
@@ -9657,13 +9675,13 @@ Private.event_prototypes = {
       },
       {
         name = "spellpenpercent",
-        display = L["Spell Peneration Percent"],
+        display = M33kAuras.IsForever() and L["Spell Penetration"] or L["Spell Peneration Percent"],
         type = "number",
         init = "GetSpellPenetration()",
         store = true,
-        enable = M33kAuras.IsWrathOrCataOrMists(),
+        enable = M33kAuras.IsWrathOrCataOrMists() or M33kAuras.IsForever(),
         conditionType = "number",
-        hidden = not M33kAuras.IsWrathOrCataOrMists(),
+        hidden = not (M33kAuras.IsWrathOrCataOrMists() or M33kAuras.IsForever()),
         multiEntry = {
           operator = "and",
           limit = 2
@@ -9717,7 +9735,7 @@ Private.event_prototypes = {
         name = "versatilitypercent",
         display = L["Versatility (%)"],
         type = "number",
-        init = "not statsAreSecret and (GetCombatRatingBonus(CR_VERSATILITY_DAMAGE_DONE) + GetVersatilityBonus(CR_VERSATILITY_DAMAGE_DONE)) or 0",
+        init = "not statsAreSecret and (GetCombatRatingBonus(CR_VERSATILITY_DAMAGE_DONE) + GetVersatilityBonus(CR_VERSATILITY_DAMAGE_DONE)) or nil",
         store = true,
         enable = M33kAuras.IsRetail(),
         conditionType = "number",
@@ -9751,8 +9769,8 @@ Private.event_prototypes = {
           operator = "and",
           limit = 2
         },
-        enable = M33kAuras.IsClassicOrCataOrMists(),
-        hidden = not M33kAuras.IsClassicOrCataOrMists(),
+        enable = M33kAuras.IsClassicOrCataOrMists() or M33kAuras.IsForever(),
+        hidden = not (M33kAuras.IsClassicOrCataOrMists() or M33kAuras.IsForever()),
       },
       {
         type = "header",
@@ -9813,7 +9831,7 @@ Private.event_prototypes = {
         name = "movespeedpercent",
         display = L["Current Movement Speed (%)"],
         type = "number",
-        init = "not statsAreSecret and (GetUnitSpeed('player') / 7 * 100) or 0",
+        init = "not statsAreSecret and (GetUnitSpeed('player') / 7 * 100) or nil",
         store = true,
         conditionType = "number",
         multiEntry = {
@@ -9826,7 +9844,7 @@ Private.event_prototypes = {
         name = "runspeedpercent",
         display = L["Run Speed (%)"],
         type = "number",
-        init = "not statsAreSecret and (select(2, GetUnitSpeed('player')) / 7 * 100) or 0",
+        init = "not statsAreSecret and (select(2, GetUnitSpeed('player')) / 7 * 100) or nil",
         store = true,
         conditionType = "number",
         multiEntry = {
@@ -9873,11 +9891,12 @@ Private.event_prototypes = {
         name = "defense",
         display = L["Defense"],
         type = "number",
-        init = "not statsAreSecret and (UnitDefense('player') + select(2, UnitDefense('player'))) or 0",
+        init = M33kAuras.IsForever() and "M33kAuras.GetDefense()"
+          or "not statsAreSecret and (UnitDefense('player') + select(2, UnitDefense('player'))) or nil",
         store = true,
-        enable = M33kAuras.IsWrathClassic(),
+        enable = M33kAuras.IsWrathClassic() or M33kAuras.IsForever(),
         conditionType = "number",
-        hidden = not M33kAuras.IsWrathClassic(),
+        hidden = not (M33kAuras.IsWrathClassic() or M33kAuras.IsForever()),
         multiEntry = {
           operator = "and",
           limit = 2
@@ -9954,7 +9973,7 @@ Private.event_prototypes = {
         name = "blocktargetpercent",
         display = L["Block against Target (%)"],
         type = "number",
-        init = "not statsAreSecret and PaperDollFrame_GetArmorReductionAgainstTarget(GetShieldBlock()) or 0",
+        init = "not statsAreSecret and PaperDollFrame_GetArmorReductionAgainstTarget(GetShieldBlock()) or nil",
         store = true,
         enable = M33kAuras.IsRetail(),
         conditionType = "number",
@@ -10009,7 +10028,7 @@ Private.event_prototypes = {
       },
       {
         name = "armorrating",
-        display = L["Armor Rating"],
+        display = M33kAuras.IsForever() and L["Armor"] or L["Armor Rating"],
         type = "number",
         init = "select(2, UnitArmor('player'))",
         store = true,
@@ -10023,7 +10042,7 @@ Private.event_prototypes = {
         name = "armorpercent",
         display = L["Armor (%)"],
         type = "number",
-        init = "not statsAreSecret and PaperDollFrame_GetArmorReduction(select(2, UnitArmor('player')), UnitEffectiveLevel and UnitEffectiveLevel('player') or UnitLevel('player')) or 0",
+        init = "not statsAreSecret and PaperDollFrame_GetArmorReduction(select(2, UnitArmor('player')), UnitEffectiveLevel and UnitEffectiveLevel('player') or UnitLevel('player')) or nil",
         store = true,
         enable = M33kAuras.IsWrathOrCataOrMistsOrRetail(),
         conditionType = "number",
@@ -10038,7 +10057,7 @@ Private.event_prototypes = {
         name = "armortargetpercent",
         display = L["Armor against Target (%)"],
         type = "number",
-        init = "not statsAreSecret and PaperDollFrame_GetArmorReductionAgainstTarget(select(2, UnitArmor('player'))) or 0",
+        init = "not statsAreSecret and PaperDollFrame_GetArmorReductionAgainstTarget(select(2, UnitArmor('player'))) or nil",
         store = true,
         enable = M33kAuras.IsRetail(),
         conditionType = "number",
