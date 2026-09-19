@@ -10591,7 +10591,7 @@ Private.event_prototypes = {
       },
       {
         hidden = true,
-        test = "spellname and IsCurrentSpell(spellname)";
+        test = "spellname and C_Spell.IsCurrentSpell(spellname)";
       },
     },
     iconFunc = function(trigger)

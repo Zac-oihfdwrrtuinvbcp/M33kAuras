@@ -3985,7 +3985,7 @@ if M33kAuras.IsForever() then
           for _, spellID in ipairs(queueableSpells) do
             -- Check the highest known rank
             local maxRank = select(7, Private.ExecEnv.GetSpellInfo(Private.ExecEnv.GetSpellName(spellID)))
-            if IsCurrentSpell(maxRank) then
+            if maxRank and C_Spell.IsCurrentSpell(maxRank) then
               newQueuedSpell = maxRank
               break
             end
