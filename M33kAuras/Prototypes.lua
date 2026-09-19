@@ -1295,6 +1295,14 @@ function M33kAuras.GetEffectiveSpellPower()
   return spellPower
 end
 
+local function talentSpecIdForTrigger(trigger)
+  local classId = trigger.class and M33kAuras.class_ids[trigger.class]
+  local spec = M33kAuras.IsForever() and 1 or trigger.spec
+  if classId and spec then
+    return Private.ExecEnv.GetSpecializationInfoForClassID(classId, spec)
+  end
+end
+
 local function talentSpecIdForLoad(trigger)
   if M33kAuras.IsForever() then
     local class = Private.checkForSingleLoadCondition(trigger, "class")
@@ -5917,20 +5925,26 @@ Private.event_prototypes = {
           "SPELLS_CHANGED",
           "PLAYER_TALENT_UPDATE"
         }
-      elseif M33kAuras.IsRetail() then
+      elseif (M33kAuras.IsRetail() or M33kAuras.IsForever()) then
         -- nothing
       end
       return {
         ["events"] = events
       }
     end,
-    internal_events = M33kAuras.IsRetail() and  {"WA_TALENT_UPDATE"} or nil,
-    force_events = (M33kAuras.IsRetail() and "TRAIT_CONFIG_UPDATED") or "CHARACTER_POINTS_CHANGED",
+    internal_events = (M33kAuras.IsRetail() or M33kAuras.IsForever()) and  {"WA_TALENT_UPDATE"} or nil,
+    force_events = ((M33kAuras.IsRetail() or M33kAuras.IsForever()) and "TRAIT_CONFIG_UPDATED") or "CHARACTER_POINTS_CHANGED",
     name = L["Talent Known"],
     init = function(trigger)
-      local inverse = trigger.use_inverse and not M33kAuras.IsMistsOrRetail()
+      local inverse = trigger.use_inverse and not (M33kAuras.IsMistsOrRetail() or M33kAuras.IsForever())
       local ret = {}
-      if (trigger.use_talent) then
+      if (M33kAuras.IsRetail() or M33kAuras.IsForever()) and trigger.use_talent then
+        local talentId = tonumber(trigger.talent and trigger.talent.single)
+        table.insert(ret, ([[
+          local activeName, activeIcon, _, rank = M33kAuras.GetTalentById(%s)
+          local active = activeName ~= nil and rank ~= nil and rank > 0
+        ]]):format(talentId or 0))
+      elseif (trigger.use_talent) then
         -- Single selection
         local index = trigger.talent and trigger.talent.single;
         local tier = index and ceil(index / MAX_NUM_TALENTS)
@@ -5957,7 +5971,7 @@ Private.event_prototypes = {
             local active = true
             local activeIcon, activeName, _
           ]])
-          if M33kAuras.IsRetail() then
+          if (M33kAuras.IsRetail() or M33kAuras.IsForever()) then
             table.insert(ret, [[
               local index
               local rank = 0
@@ -6000,16 +6014,14 @@ Private.event_prototypes = {
                   end
                 end
               ]]):format(tier, column, value and "true" or "false"))
-            elseif M33kAuras.IsRetail() then
+            elseif (M33kAuras.IsRetail() or M33kAuras.IsForever()) then
               table.insert(ret, ([[
                 local talentId = %s
                 local shouldBeActive = %s
                 if talentId then
                   activeName, activeIcon, _, rank = M33kAuras.GetTalentById(talentId)
-                  if activeName ~= nil then
-                    if rank > 0 ~= shouldBeActive then
-                      active = false
-                    end
+                  if activeName == nil or rank == nil or (rank > 0) ~= shouldBeActive then
+                    active = false
                   end
                 end
               ]]):format(index, value and "true" or "false"))
@@ -6062,8 +6074,8 @@ Private.event_prototypes = {
         store = true,
         conditionType = "select",
         required = true,
-        enable = M33kAuras.IsRetail(),
-        hidden = not M33kAuras.IsRetail(),
+        enable = (M33kAuras.IsRetail() or M33kAuras.IsForever()),
+        hidden = not (M33kAuras.IsRetail() or M33kAuras.IsForever()),
         reloadOptions = true,
       },
       {
@@ -6090,21 +6102,10 @@ Private.event_prototypes = {
         type = "multiselect",
         values = function(trigger)
           local class = select(2, UnitClass("player"));
-          if M33kAuras.IsRetail() then
-            local classId
-            for i = 1, GetNumClasses() do
-              if select(2, GetClassInfo(i)) == trigger.class then
-                classId = i
-              end
-            end
-            if classId and trigger.spec then
-              local specId = GetSpecializationInfoForClassID(classId, trigger.spec)
-              if specId then
-                local talentData = Private.GetTalentData(specId)
-                if talentData then
-                  return talentData
-                end
-              end
+          if (M33kAuras.IsRetail() or M33kAuras.IsForever()) then
+            local specId = talentSpecIdForTrigger(trigger)
+            if specId then
+              return Private.GetTalentData(specId) or {}
             end
             return {}
           elseif M33kAuras.IsMists() then
@@ -6117,31 +6118,23 @@ Private.event_prototypes = {
             end
           end
         end,
-        multiUseControlWhenFalse = M33kAuras.IsMistsOrRetail(),
-        multiAll = M33kAuras.IsMistsOrRetail(),
-        multiNoSingle = M33kAuras.IsMistsOrRetail(),
-        multiTristate = M33kAuras.IsMistsOrRetail(), -- values can be true/false/nil
-        control = M33kAuras.IsMistsOrRetail() and "M33kAurasMiniTalent" or nil,
-        multiConvertKey = M33kAuras.IsRetail() and function(trigger, key)
-          local classId
-          for i = 1, GetNumClasses() do
-            if select(2, GetClassInfo(i)) == trigger.class then
-              classId = i
-            end
-          end
-          if classId and trigger.spec then
-            local specId = GetSpecializationInfoForClassID(classId, trigger.spec)
-            if specId then
-              local talentData = Private.GetTalentData(specId)
-              if type(talentData) == "table" and talentData[key] then
-                return talentData[key][1]
-              end
+        multiUseControlWhenFalse = (M33kAuras.IsMistsOrRetail() or M33kAuras.IsForever()),
+        multiAll = (M33kAuras.IsMistsOrRetail() or M33kAuras.IsForever()),
+        multiNoSingle = (M33kAuras.IsMistsOrRetail() or M33kAuras.IsForever()),
+        multiTristate = (M33kAuras.IsMistsOrRetail() or M33kAuras.IsForever()), -- values can be true/false/nil
+        control = (M33kAuras.IsMistsOrRetail() or M33kAuras.IsForever()) and "M33kAurasMiniTalent" or nil,
+        multiConvertKey = (M33kAuras.IsRetail() or M33kAuras.IsForever()) and function(trigger, key)
+          local specId = talentSpecIdForTrigger(trigger)
+          if specId then
+            local talentData = Private.GetTalentData(specId)
+            if type(talentData) == "table" and talentData[key] then
+              return talentData[key][1]
             end
           end
         end or nil,
         enable = function(trigger)
-          if M33kAuras.IsRetail() then
-            if trigger.use_class and trigger.class and trigger.use_spec and trigger.spec then
+          if (M33kAuras.IsRetail() or M33kAuras.IsForever()) then
+            if trigger.use_class and trigger.class and (M33kAuras.IsForever() or (trigger.use_spec and trigger.spec)) then
               return true
             else
               return false
@@ -6162,9 +6155,9 @@ Private.event_prototypes = {
         init = "rank",
         store = true,
         enable = function(trigger)
-          if M33kAuras.IsRetail() then
+          if (M33kAuras.IsRetail() or M33kAuras.IsForever()) then
             if trigger.use_class and trigger.class
-            and trigger.use_spec and trigger.spec
+            and (M33kAuras.IsForever() or (trigger.use_spec and trigger.spec))
             and trigger.use_talent == false
             and trigger.talent and type(trigger.talent.multi) == "table"
             then
@@ -6235,8 +6228,8 @@ Private.event_prototypes = {
         display = L["Inverse"],
         type = "toggle",
         test = "true",
-        enable = not M33kAuras.IsMistsOrRetail(),
-        hidden = M33kAuras.IsMistsOrRetail(),
+        enable = not (M33kAuras.IsMistsOrRetail() or M33kAuras.IsForever()),
+        hidden = M33kAuras.IsMistsOrRetail() or M33kAuras.IsForever(),
       },
       {
         hidden = true,
