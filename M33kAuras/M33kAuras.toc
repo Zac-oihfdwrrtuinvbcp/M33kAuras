@@ -40,6 +40,7 @@ DefaultOptions.lua
 SubscribableObject.lua
 Features.lua
 TimeMachine.lua
+Encounters_Forever.lua
 Types_Retail.lua
 Types.lua
 Prototypes.lua

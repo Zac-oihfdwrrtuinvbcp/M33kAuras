@@ -10,12 +10,18 @@ local L = M33kAuras.L;
 
 local encounter_list = ""
 local zoneId_list = ""
+local foreverEncounters
 function Private.InitializeEncounterAndZoneLists()
-  if M33kAuras.IsForever() then return end
-	local currTier = EJ_GetCurrentTier()
+  if M33kAuras.IsForever() then
+    if not foreverEncounters then
+      foreverEncounters = Private.BuildForeverEncounterLists()
+    end
+    return
+  end
   if encounter_list ~= "" then
     return
   end
+	local currTier = EJ_GetCurrentTier()
 	for tier = EJ_GetNumTiers(), EJ_GetNumTiers() do
 		EJ_SelectTier(tier)
 		local tierName = EJ_GetTierInfo(tier)
@@ -70,7 +76,16 @@ function Private.InitializeEncounterAndZoneLists()
 end
 
 function Private.get_encounters_list()
+  if M33kAuras.IsForever() then
+    return L["Use Browse Encounters to find and copy encounter IDs."]
+      .. "\n\n" .. L["Supports multiple entries, separated by commas\n"]
+  end
   return encounter_list
+end
+
+function Private.GetForeverEncounters()
+  Private.InitializeEncounterAndZoneLists()
+  return foreverEncounters
 end
 
 function Private.get_zoneId_list()

@@ -16,6 +16,8 @@ local tests = {
   "character_stats_test.lua",
   "common_options_test.lua",
   "cooldown_test.lua",
+  "encounter_browser_test.lua",
+  "encounter_reference_test.lua",
   "instance_test.lua",
   "pvp_flag_test.lua",
   "raid_role_test.lua",

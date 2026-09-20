@@ -1172,6 +1172,34 @@ function OptionsPrivate.ConstructOptions(prototype, data, startorder, triggernum
   return options;
 end
 
+local function AddEncounterReference(options, data)
+  if not M33kAuras.IsForever() then return end
+  -- Display-only selection: never store this as part of the aura's load rules.
+  local input = options.encounterid or options.enabledBossModID
+  if not input then return end
+  local function hidden(info)
+    if data.controlledChildren then return hiddenAll(data, info) end
+    for _, name in ipairs({"encounterid", "enabledBossModID"}) do
+      local option = options[name]
+      if option then
+        local isHidden = option.hidden
+        if type(isHidden) == "function" then isHidden = isHidden(info) end
+        if not isHidden then return false end
+      end
+    end
+    return true
+  end
+  options.encounterReference = {
+    type = "execute",
+    name = L["Browse Encounters"] .. M33kAuras.newFeatureString,
+    desc = L["Find and copy encounter IDs. This does not change when the aura loads."],
+    order = input.order + 0.1,
+    width = "full",
+    hidden = hidden,
+    func = function() OptionsPrivate.OpenEncounterBrowser() end,
+  }
+end
+
 function OptionsPrivate.GetLoadOptions(data)
   local load = {
     type = "group",
@@ -1208,5 +1236,6 @@ function OptionsPrivate.GetLoadOptions(data)
       load.hidden = function(info, ...) return hiddenAll(data, info, ...); end;
       load.disabled = function(info, ...) return disabledAll(data, info, ...); end;
     end
+    AddEncounterReference(load.args, data)
     return load
 end

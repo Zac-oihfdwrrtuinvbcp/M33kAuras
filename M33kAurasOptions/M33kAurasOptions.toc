@@ -76,6 +76,7 @@ OptionsFrames\TextEditor.lua
 OptionsFrames\TexturePicker.lua
 OptionsFrames\Update.lua
 OptionsFrames\DebugLogFrame.lua
+OptionsFrames\EncounterBrowser.lua
 
 # Misc frames
 OptionsFrames\MoverSizer.lua
