@@ -385,11 +385,27 @@ local function GetBuffTriggerOptions(data, triggernum)
       name = L["Spell Selection Filters"],
       order = 11.15,
     },
+    secretValuesHeading = {
+      type = "description",
+      width = M33kAuras.doubleWidth,
+      name = "|cffffd200" .. L["Secret values"] .. "|r",
+      fontSize = "large",
+      order = 11.16,
+    },
     restrictions12_1Warning = {
       type = "description",
       width = M33kAuras.doubleWidth,
-      name = L["While aura secrecy restrictions are active, M33kAuras can only track non-secret auras. Enter the auras you want to track in Name(s) or Exact Spell ID(s), even when using the ignore filters. If several auras have the same name or spell ID, only one may be shown."],
-      order = 11.16,
+      fontSize = "medium",
+      name = L["Auras can become secret during combat, encounters, Mythic+ runs, or PvP matches. Some auras are always secret or never secret."] .. "\n\n" .. L["This trigger cannot track secret auras. While restrictions are active, enter the auras you want to track in Name(s) or Exact Spell ID(s), even when using ignore filters. If several auras have the same name or spell ID, only one may be shown."],
+      order = 11.17,
+    },
+    neverSecretSpells = {
+      type = "execute",
+      name = L["Browse never-secret auras"],
+      desc = L["Search Blizzard's list of never-secret auras by spell name or ID."],
+      width = M33kAuras.doubleWidth,
+      order = 11.18,
+      func = function() OptionsPrivate.OpenSpellSecrecyList("aura") end,
     },
     use_debuffClass = {
       type = "toggle",
@@ -433,6 +449,7 @@ local function GetBuffTriggerOptions(data, triggernum)
       end
     },
     useName = {
+      desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["While aura restrictions are active, this filter can only find auras that are not secret. If several auras have the same name or spell ID, only one may be shown."],
       type = "toggle",
       name = L["Name(s)"],
       order = 12,
@@ -446,6 +463,7 @@ local function GetBuffTriggerOptions(data, triggernum)
       hidden = function() return not (trigger.type == "aura2" and not trigger.useName) end
     },
     useExactSpellId = {
+      desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["While aura restrictions are active, this filter can only find auras that are not secret. If several auras have the same name or spell ID, only one may be shown."],
       type = "toggle",
       name = L["Exact Spell ID(s)"],
       width = M33kAuras.normalWidth - 0.2,
@@ -459,6 +477,7 @@ local function GetBuffTriggerOptions(data, triggernum)
       hidden = function() return not (trigger.type == "aura2" and not trigger.useExactSpellId) end
     },
     useIgnoreName = {
+      desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["While aura restrictions are active, enter the auras you want to track in Name(s) or Exact Spell ID(s). Ignored entries only remove auras from that selection."],
       type = "toggle",
       name = L["Ignored Name(s)"],
       order = 32,
@@ -473,6 +492,7 @@ local function GetBuffTriggerOptions(data, triggernum)
       hidden = function() return not (trigger.type == "aura2" and not trigger.useIgnoreName and trigger.unit ~= "multi" and CanHaveMatchCheck(trigger)) end
     },
     useIgnoreExactSpellId = {
+      desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["While aura restrictions are active, enter the auras you want to track in Name(s) or Exact Spell ID(s). Ignored entries only remove auras from that selection."],
       type = "toggle",
       name = L["Ignored Exact Spell ID(s)"],
       width = M33kAuras.normalWidth - 0.2,
@@ -1242,6 +1262,7 @@ local function GetBuffTriggerOptions(data, triggernum)
       disabled = true
     },
     matchesShowOn = {
+      desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["Blizzard does not report secret auras to this trigger. An aura may appear missing because it is hidden by restrictions, even if it is still active."],
       type = "select",
       width = M33kAuras.normalWidth,
       name = L["Show On"],

@@ -13,6 +13,70 @@ There are a few things which we require in any contribution:
 - When writing a new file, avoid using semicolons. When modifying code in an existing file, try to be consistent, but err on the side of no semicolons.
 - New features should be indicated by concatenating `M33kAuras.newFeatureString` onto the associated translation phrase. We will remove the new feature indicator approximately 3 months after the first release.
 
+## Secret-value help text
+
+Use the same gold **Secret values** heading for trigger descriptions and option
+tooltips: `"|cffffd200" .. L["Secret values"] .. "|r"`. Keep the body in the normal
+text color. For prototype descriptions, put the heading in `display` and the
+body in `text`; do not put a whole paragraph in the large heading. Use medium
+font size for the description body so it is readable below the large heading.
+
+Write short, user-facing sentences in this order:
+
+1. Explain when the relevant information becomes secret, if the rule is known.
+2. Explain the effect on this trigger or filter.
+3. Explain what can still be shown or which option the user can change.
+
+In trigger overviews, separate the circumstances from the effect and next step
+with a blank line. Name the option users can change, such as "Choose Always"
+or "Leave this filter unchecked." Prefer "check whether the spell is ready"
+over "determine readiness" and "checks of a unit's target" over "inherited
+identity restrictions." Keep field tooltips focused on that field instead of
+repeating the full overview. Preserve distinctions between information that can
+be displayed, information that can be checked, and displays that stop updating.
+
+Show the overall explanation once per trigger. Put field-specific details in
+the affected option's tooltip, after its existing help text with a blank line.
+Use consistent wording such as "When this value is secret, this filter cannot
+match." Only promise that behavior when the implementation actually rejects
+the filter; missing values, skipped updates, and estimated readiness require
+their own explanations. Do not imply that a hidden aura is necessarily absent.
+
+For spell cooldown triggers, use "When cooldown is secret" consistently for
+timing, charges, and spell counts. Do not describe these as separate secrecy
+rules; explain the effect on the selected option after that shared wording.
+Similarly, use "When the cast is secret" for cast names, spell IDs, interruptibility,
+remaining time, and empowered stages, and "When power is secret" for resource
+amounts, percentages, and deficits. Use "When totem information is secret" for
+totems. Retain separate wording where the rules actually differ: maximum power,
+threat status versus threat values, and unit identity versus cast information.
+For character stats, keep "When this stat is secret or unavailable" because each
+filter must still work when its own stat is available.
+
+Check `Blizzard_APIDocumentationGenerated/SecretPredicatesDocumentation.lua` in
+the WoW UI source and the predicates on the actual API used by the trigger.
+Predicate names and API names belong in developer documentation, not in the
+tooltips. Relevant distinctions include:
+
+- Aura, cooldown, and totem rules can depend on combat, encounter, challenge-mode,
+  or PvP restrictions, with always/never-secret spell exceptions taking priority.
+- Cast rules normally exempt the player and their pet, with spell exceptions.
+  Do not describe all cast secrecy as combat-only or promise that own casts are
+  always public.
+- Power amounts depend on resource type; maximum power also depends on whether
+  the unit is player-controlled.
+- Threat status and detailed threat values have different unit-based rules.
+  Check which API the trigger uses before promising that a field is available.
+- Identity and unit-comparison rules differ. Names have an additional PvP
+  exception; compound unit tokens can inherit restrictions. A unit comparison
+  can be unsupported independently of whether its result would be secret.
+- The stat predicate does not specify a precise list of circumstances. Do not
+  invent one or equate all secrecy with the global restriction flag.
+
+These are conditional rules, not a promise about the value currently returned.
+Preserve qualifiers such as "normally" and "generally" where the documentation
+uses them. Localize complete sentences with `L["..."]`.
+
 ## Pull Requests
 
 If you want to help, here's what you need to do:

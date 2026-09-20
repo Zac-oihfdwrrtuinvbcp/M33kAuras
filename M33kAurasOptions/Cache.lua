@@ -9,6 +9,10 @@ local pairs, error, coroutine = pairs, error, coroutine
 
 -- WoW APIs
 local IsSpellKnown = IsSpellKnown
+local neverSecret = Enum.SecrecyLevel.NeverSecret
+local getAuraSecrecy = C_Secrets.GetSpellAuraSecrecy
+local getCooldownSecrecy = C_Secrets.GetSpellCooldownSecrecy
+local getCastSecrecy = C_Secrets.GetSpellCastSecrecy
 
 ---@class M33kAuras
 local M33kAuras = M33kAuras
@@ -19,6 +23,212 @@ M33kAuras.spellCache = spellCache
 local cache
 local metaData
 local bestIcon = {}
+local secrecyEntries = {}
+local emptySecrecyEntries = {}
+
+-- These lists describe fixed spell flags, not the current restriction state.
+-- Cache filtered data separately from the visible rows; scrolling never searches the cache.
+function spellCache.GetNeverSecretSpells(kind, search)
+  local complete = metaData and not metaData.needsRebuild and not metaData.rebuilding
+  -- Do not repeatedly copy and sort an incomplete background scan.
+  if not complete then return emptySecrecyEntries, 0, false end
+  local entries = secrecyEntries[kind]
+  if not entries then
+    entries = {}
+    for id, name in pairs(metaData.neverSecretSpells[kind]) do
+      entries[#entries + 1] = { id = id, name = name, searchName = name:lower(), searchId = tostring(id) }
+    end
+    table.sort(entries, function(a, b) return a.id < b.id end)
+    secrecyEntries[kind] = entries
+  end
+  search = (search or ""):lower():match("^%s*(.-)%s*$")
+  if search == "" then return entries, #entries, true end
+  if entries.search ~= search then
+    entries.search = search
+    entries.matches = {}
+    for i = 1, #entries do
+      local entry = entries[i]
+      if entry.searchName:find(search, 1, true) or entry.searchId:find(search, 1, true) then
+        entries.matches[#entries.matches + 1] = entry
+      end
+    end
+  end
+  return entries.matches, #entries.matches, complete
+end
+
+local secrecyList
+
+local function GetSpellSecrecyList(parent)
+  if not secrecyList then
+    local L = M33kAuras.L
+    local list = CreateFrame("Frame", nil, parent)
+    list.scrollBox = CreateFrame("Frame", nil, list, "WowScrollBoxList")
+    list.scrollBox:SetPoint("TOPLEFT", 0, -2)
+    list.scrollBox:SetPoint("BOTTOMRIGHT", -24, 2)
+    list.scrollBar = CreateFrame("EventFrame", nil, list, "MinimalScrollBar")
+    list.scrollBar:SetPoint("TOPRIGHT", -2, -16)
+    list.scrollBar:SetPoint("BOTTOMRIGHT", -2, 16)
+    list.empty = list:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    list.empty:SetPoint("CENTER")
+
+    -- ScrollBox acquires frames only for the visible range and pools them as
+    -- they scroll out of view. The list and its frame pool survive popup reuse.
+    local view = CreateScrollBoxListLinearView()
+    view:SetElementExtent(44)
+    view:SetElementInitializer("Button", function(row, entry)
+      if not row.icon then
+        row.icon = row:CreateTexture(nil, "ARTWORK")
+        row.icon:SetSize(32, 32)
+        row.icon:SetPoint("LEFT", 4, 0)
+        row.name = row:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+        row.name:SetPoint("TOPLEFT", 44, -6)
+        row.name:SetPoint("RIGHT", -104, 0)
+        row.name:SetJustifyH("LEFT")
+        row.name:SetWordWrap(false)
+        row.id = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        row.id:SetPoint("TOPLEFT", 44, -24)
+        row:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
+        row.copyButton = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
+        row.copyButton:SetSize(90, 24)
+        row.copyButton:SetPoint("RIGHT", -4, 0)
+        row.copyButton:SetText(L["Copy ID"])
+        row.copyButton:SetScript("OnClick", function()
+          if row.entry and list.onCopy then list.onCopy(row.entry.id) end
+        end)
+        row:SetScript("OnEnter", function()
+          if not row.entry then return end
+          GameTooltip:SetOwner(row, "ANCHOR_RIGHT")
+          GameTooltip:SetSpellByID(row.entry.id)
+          GameTooltip:Show()
+        end)
+        row:SetScript("OnLeave", function()
+          if GameTooltip:IsOwned(row) then GameTooltip:Hide() end
+        end)
+      end
+      row.entry = entry
+      row.icon:SetTexture(OptionsPrivate.Private.ExecEnv.GetSpellIcon(entry.id) or 134400)
+      row.name:SetText("|cffffd200" .. entry.name .. "|r")
+      row.id:SetText(L["Spell ID: %d"]:format(entry.id))
+    end)
+    view:SetElementResetter(function(row)
+      if GameTooltip:IsOwned(row) then GameTooltip:Hide() end
+      row.entry = nil
+    end)
+    ScrollUtil.InitScrollBoxListWithScrollBar(list.scrollBox, list.scrollBar, view)
+    secrecyList = list
+  end
+  secrecyList:SetParent(parent)
+  secrecyList:ClearAllPoints()
+  secrecyList:SetAllPoints()
+  secrecyList:Show()
+  return secrecyList
+end
+
+local closeSecrecyWindow
+
+function OptionsPrivate.OpenSpellSecrecyList(kind)
+  spellCache.Build()
+  if closeSecrecyWindow then
+    closeSecrecyWindow()
+  end
+
+  local L = M33kAuras.L
+  local AceGUI = LibStub("AceGUI-3.0")
+  local titles = {
+    aura = L["Never-secret auras"],
+    cooldown = L["Never-secret cooldowns"],
+    cast = L["Never-secret casts"],
+  }
+  local window = AceGUI:Create("Frame")
+  window:SetTitle(titles[kind])
+  window:SetWidth(650)
+  window:SetHeight(650)
+  window:EnableResize(false)
+  window:SetLayout("Flow")
+
+  local help = AceGUI:Create("Label")
+  help:SetFullWidth(true)
+  help:SetText(L["Spells Blizzard marks as never secret for this list's category. Search by spell name or ID. This list includes spells from all classes and NPCs, not just spells you know. The list becomes available when the spell cache finishes building."])
+  window:AddChild(help)
+
+  local search = AceGUI:Create("EditBox")
+  search:SetLabel(L["Search"])
+  search:SetFullWidth(true)
+  search:DisableButton(true)
+  window:AddChild(search)
+
+  local results = AceGUI:Create("SimpleGroup")
+  results:SetFullWidth(true)
+  results:SetAutoAdjustHeight(false)
+  results:SetHeight(400)
+  window:AddChild(results)
+  local list = GetSpellSecrecyList(results.content)
+
+  local copy = AceGUI:Create("EditBox")
+  copy:SetLabel(L["Selected spell ID (press Ctrl+C to copy)"])
+  copy:SetFullWidth(true)
+  copy:DisableButton(true)
+  window:AddChild(copy)
+  local selectedID = ""
+  copy:SetCallback("OnTextChanged", function(_, _, value)
+    if value ~= selectedID then copy:SetText(selectedID) end
+  end)
+
+  list.onCopy = function(id)
+    selectedID = tostring(id)
+    copy:SetText(selectedID)
+    copy:SetFocus()
+    copy:HighlightText()
+  end
+
+  local ticker
+  local closed = false
+  local copyEscape = copy.editbox:GetScript("OnEscapePressed")
+  local searchEscape = search.editbox:GetScript("OnEscapePressed")
+  local function Close()
+    if closed then return end
+    closed = true
+    if ticker then ticker:Cancel(); ticker = nil end
+    list.onCopy = nil
+    list.scrollBox:RemoveDataProvider()
+    list:Hide()
+    list:SetParent(UIParent)
+    copy.editbox:SetScript("OnEscapePressed", copyEscape)
+    search.editbox:SetScript("OnEscapePressed", searchEscape)
+    closeSecrecyWindow = nil
+    AceGUI:Release(window)
+  end
+  closeSecrecyWindow = Close
+  window:SetCallback("OnClose", Close)
+  copy.editbox:SetScript("OnEscapePressed", Close)
+  search.editbox:SetScript("OnEscapePressed", Close)
+
+  local displayedEntries, displayedSearch
+  local function Refresh()
+    local query = search:GetText()
+    local entries, count, complete = spellCache.GetNeverSecretSpells(kind, query)
+    if displayedEntries ~= entries then
+      list.scrollBox:SetDataProvider(CreateDataProvider(entries), displayedSearch == query)
+      displayedEntries, displayedSearch = entries, query
+    end
+    list.empty:SetText(complete and L["No spells match your search."] or L["The spell list will appear when the spell cache finishes building."])
+    list.empty:SetShown(count == 0)
+    local status = L["%d matching spells"]:format(count)
+    if not complete then
+      status = L["Building spell list..."]
+    elseif ticker then
+      ticker:Cancel()
+      ticker = nil
+    end
+    window:SetStatusText(status)
+    return complete
+  end
+  search:SetCallback("OnTextChanged", Refresh)
+  if not Refresh() then
+    ticker = C_Timer.NewTicker(1, Refresh)
+  end
+  search:SetFocus()
+end
 
 -- Builds a cache of name/icon pairs from existing spell data
 -- This is a rather slow operation, so it's only done once, and the result is subsequently saved
@@ -27,11 +237,11 @@ function spellCache.Build()
     error("spellCache has not been loaded. Call M33kAuras.spellCache.Load(...) first.")
   end
 
-  if not metaData.needsRebuild then
+  if not metaData.needsRebuild or metaData.rebuilding then
     return
   end
 
-  if IsTestBuild() then -- disable for 12.0.7
+  if IsTestBuild() and not M33kAuras.IsForever() then -- disable for 12.0.7
     return
   end
 
@@ -70,15 +280,38 @@ function spellCache.Build()
     holes[1049296] = 1213133
   end
   wipe(cache)
+  wipe(bestIcon)
+  metaData.neverSecretSpells = { aura = {}, cooldown = {}, cast = {} }
+  secrecyEntries = {}
+  metaData.rebuilding = true
+  -- Secrecy flags are static for this cache build. Resolve destination tables
+  -- once, rather than dispatching by category for every spell.
+  local auraSpells = metaData.neverSecretSpells.aura
+  local cooldownSpells = metaData.neverSecretSpells.cooldown
+  local castSpells = metaData.neverSecretSpells.cast
+  local getSpellName = OptionsPrivate.Private.ExecEnv.GetSpellName
+  local getSpellIcon = OptionsPrivate.Private.ExecEnv.GetSpellIcon
   local co = coroutine.create(function()
     -- if true then return end -- Spell cache crashes the game
-    metaData.rebuilding = true
     local id = 0
     local misses = 0
     while misses < 80000 do
       id = id + 1
-      local name = OptionsPrivate.Private.ExecEnv.GetSpellName(id)
-      local icon = OptionsPrivate.Private.ExecEnv.GetSpellIcon(id)
+      local name = getSpellName(id)
+      local icon = getSpellIcon(id)
+      -- Only the normal cache rebuild collects these static flags. Include
+      -- named spells even when the icon picker excludes their icon.
+      if name and name ~= "" then
+        if getAuraSecrecy(id) == neverSecret then
+          auraSpells[id] = name
+        end
+        if getCooldownSecrecy(id) == neverSecret then
+          cooldownSpells[id] = name
+        end
+        if getCastSecrecy(id) == neverSecret then
+          castSpells[id] = name
+        end
+      end
 
       if(icon == 136243) then -- 136243 is the a gear icon, we can ignore those spells
         misses = 0;
@@ -226,18 +459,27 @@ end
 function spellCache.Load(data)
   metaData = data
   cache = metaData.spellCache
+  local interrupted = metaData.rebuilding
+  metaData.rebuilding = false
+  secrecyEntries = {}
+  wipe(bestIcon)
 
   local _, build = GetBuildInfo();
   local locale = GetLocale();
   local version = M33kAuras.versionString
 
   local num = 0;
-  for i,v in pairs(cache) do
+  for _ in pairs(cache) do
     num = num + 1;
+    if num >= 39000 then break end
   end
 
   if(num < 39000 or metaData.locale ~= locale or metaData.build ~= build
-     or metaData.version ~= version or not metaData.spellCacheStrings)
+     or metaData.version ~= version or not metaData.spellCacheStrings or interrupted
+     or type(metaData.neverSecretSpells) ~= "table"
+     or type(metaData.neverSecretSpells.aura) ~= "table"
+     or type(metaData.neverSecretSpells.cooldown) ~= "table"
+     or type(metaData.neverSecretSpells.cast) ~= "table")
   then
     metaData.build = build;
     metaData.locale = locale;
@@ -245,6 +487,7 @@ function spellCache.Load(data)
     metaData.spellCacheAchievements = true
     metaData.spellCacheStrings = true
     metaData.needsRebuild = true
+    metaData.neverSecretSpells = { aura = {}, cooldown = {}, cast = {} }
     wipe(cache)
   end
 end

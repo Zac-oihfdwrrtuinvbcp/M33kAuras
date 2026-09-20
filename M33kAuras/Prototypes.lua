@@ -1534,7 +1534,7 @@ Private.load_prototype = {
       init = "arg",
       optional = true,
       events = {"WA_SECRET_STATE_UPDATE"},
-      desc = L["Whether addon secret restrictions applied by Combat, Encounter, PvP match or active Mythic+ dungeon are currently active."],
+      desc = L["Whether combat, an encounter, a Mythic+ run, or a PvP match is currently restricting the information addons can use."],
     },
     {
       name = "ruleset",
@@ -2502,6 +2502,12 @@ Private.event_prototypes = {
     end,
     statesParameter = "unit",
     args = {
+      {
+        name = "secretValuesDescription",
+        type = "description",
+        display = "|cffffd200" .. L["Secret values"] .. "|r",
+        text = L["Names and NPC IDs can be secret even outside combat for units that are neither player-controlled nor in your group. Player names are normally available in PvP. These restrictions can also affect checks of a unit's target."] .. "\n\n" .. L["Filters cannot check information Blizzard keeps secret."],
+      },
       {
         name = "unit",
         required = true,
@@ -3511,6 +3517,12 @@ Private.event_prototypes = {
     statesParameter = "unit",
     args = {
       {
+        name = "secretValuesDescription",
+        type = "description",
+        display = "|cffffd200" .. L["Secret values"] .. "|r",
+        text = L["Power can be secret even outside combat. The rules depend on the resource type, such as mana or energy. Maximum power also depends on whether the unit is player-controlled."] .. "\n\n" .. L["When power is secret, it can still be displayed, but filters cannot check its amount. Leave those filters unchecked to display power."],
+      },
+      {
         name = "unit",
         required = true,
         display = L["Unit"],
@@ -3597,6 +3609,7 @@ Private.event_prototypes = {
       },
       {
         name = "power",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When power is secret, this filter cannot match. Leave it unchecked to display power without checking its amount."],
         display = L["Power"],
         type = "number",
         init = "power",
@@ -3638,6 +3651,7 @@ Private.event_prototypes = {
       },
       {
         name = "percentpower",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When power is secret, this filter cannot match. Leave it unchecked to display power without checking its amount."],
         display = L["Power (%)"],
         type = "number",
         init = "powerType ~= 99 and UnitPowerPercent(unit, powerType, false, CurveConstants.ScaleTo100) or (not hasanysecretvalues(power, total) and total ~= 0 and (power / total) * 100 or nil)",
@@ -3651,6 +3665,7 @@ Private.event_prototypes = {
       },
       {
         name = "deficit",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When power is secret, this filter cannot match. Leave it unchecked to display power without checking its amount."],
         display = L["Power Deficit"],
         type = "number",
         init = "powerType ~= 99 and UnitPowerMissing(unit, powerType) or (not hasanysecretvalues(power, total) and total ~= 0 and (total - power) or nil)",
@@ -3664,6 +3679,7 @@ Private.event_prototypes = {
       },
       {
         name = "maxpower",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["Maximum power is normally secret for units that are not player-controlled, with exceptions for some resource types. When maximum power is secret, this filter cannot match."],
         display = M33kAuras.newFeatureString .. L["Max Power"],
         type = "number",
         init = "total",
@@ -4281,7 +4297,7 @@ Private.event_prototypes = {
       if (trigger.genericShowOn == "showOnReady") then
         showOnCheck = "(isSecret and isReady == true) or (not isSecret and startTime and startTime == 0 or gcdCooldown)";
       elseif (trigger.genericShowOn == "showOnCooldown") then
-        showOnCheck = "(isSecret and isReady == false) or (not isSecret and startTime and startTime > 0 and not gcdCooldown)";
+        showOnCheck = "(isSecret and isReady ~= true) or (not isSecret and startTime and startTime > 0 and not gcdCooldown)";
       elseif (trigger.genericShowOn == "showAlways") then
         showOnCheck = "startTime ~= nil or durationObject ~= nil";
       end
@@ -4443,6 +4459,12 @@ Private.event_prototypes = {
     useModRate = true,
     args = {
       {
+        name = "secretValuesDescription",
+        type = "description",
+        display = "|cffffd200" .. L["Secret values"] .. "|r",
+        text = L["Cooldowns can become secret during combat, encounters, Mythic+ runs, or PvP matches. Some spells are always secret or never secret."] .. "\n\n" .. L["When cooldown is secret, progress can still be displayed."],
+      },
+      {
       }, -- Ignore first argument (id)
       {
         name = "spellName",
@@ -4553,6 +4575,7 @@ Private.event_prototypes = {
       },
       {
         name = "trackcharge",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When cooldown is secret, this option cannot track the recharge of a specific charge. Leave it unchecked to display cooldown progress."],
         display = L["Show CD of Charge"],
         type = "number",
         enable = function(trigger)
@@ -4572,12 +4595,14 @@ Private.event_prototypes = {
       },
       {
         name = "remaining",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When cooldown is secret, this filter cannot check the actual time remaining. Leave it unchecked to display cooldown progress without a remaining-time check."],
         display = L["Remaining Time"],
         type = "number",
         enable = function(trigger) return (trigger.genericShowOn ~= "showOnReady") end
       },
       {
         name = "charges",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When cooldown is secret, this filter cannot match. The count can still be displayed."],
         display = L["Charges"],
         type = "number",
         store = true,
@@ -4587,6 +4612,7 @@ Private.event_prototypes = {
       },
       {
         name = "spellCount",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When cooldown is secret, this filter cannot match. The count can still be displayed."],
         display = L["Spell Count"],
         type = "number",
         store = true,
@@ -4803,6 +4829,12 @@ Private.event_prototypes = {
     statesParameter = "one",
     args = {
       {
+        name = "secretValuesDescription",
+        type = "description",
+        display = "|cffffd200" .. L["Secret values"] .. "|r",
+        text = L["Cooldowns can become secret during combat, encounters, Mythic+ runs, or PvP matches. Some spells are always secret or never secret."] .. "\n\n" .. L["This trigger fires when it detects a spell changing from on cooldown to ready."],
+      },
+      {
         name = "spellName",
         required = true,
         display = L["Spell"],
@@ -4885,6 +4917,12 @@ Private.event_prototypes = {
     statesParameter = "one",
     GetNameAndIcon = GetNameAndIconForSpellName,
     args = {
+      {
+        name = "secretValuesDescription",
+        type = "description",
+        display = "|cffffd200" .. L["Secret values"] .. "|r",
+        text = L["Cooldowns can become secret during combat, encounters, Mythic+ runs, or PvP matches. Some spells are always secret or never secret."] .. "\n\n" .. L["When cooldown is secret, this trigger cannot detect charges gained or lost. It only reports a change when it can read both the previous and current charge counts."],
+      },
       {
         name = "spellName",
         required = true,
@@ -6634,6 +6672,12 @@ Private.event_prototypes = {
     end,
     args = {
       {
+        name = "secretValuesDescription",
+        type = "description",
+        display = "|cffffd200" .. L["Secret values"] .. "|r",
+        text = L["Totem information can become secret during combat, encounters, Mythic+ runs, or PvP matches."] .. "\n\n" .. L["When totem information is secret, the trigger stops updating that totem. The display may keep showing old information until the totem information is available again."],
+      },
+      {
         name = "totemType",
         display = L["Totem Number"],
         type = "select",
@@ -8363,6 +8407,12 @@ Private.event_prototypes = {
     statesParameter = "unit",
     args = {
       {
+        name = "secretValuesDescription",
+        type = "description",
+        display = "|cffffd200" .. L["Secret values"] .. "|r",
+        text = L["Threat secrecy depends on which unit you track. Your general threat status is usually available, but threat amounts and percentages against bosses can be secret. Values for other enemies or enemies tracked by nameplates are generally available."] .. "\n\n" .. L["When a value is secret, filters that check it cannot match. Leave those filters unchecked to use other available threat information."],
+      },
+      {
         name = "unit",
         display = L["Unit"],
         required = true,
@@ -8375,6 +8425,7 @@ Private.event_prototypes = {
       },
       {
         name = "status",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["Your general threat status is usually available. Checking threat against a specific unit can be restricted, especially for bosses. When threat status is secret, this filter cannot match."],
         display = L["Status"],
         type = "select",
         values = "unit_threat_situation_types",
@@ -8383,6 +8434,7 @@ Private.event_prototypes = {
       },
       {
         name = "aggro",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When threat status is secret, neither Aggro nor Not Aggro can match. Leave this filter unchecked to track other available threat information."],
         display = L["Aggro"],
         type = "tristate",
         store = true,
@@ -8391,7 +8443,7 @@ Private.event_prototypes = {
       {
         name = "threatpct",
         display = L["Threat Percent"],
-        desc = L["Your threat on the mob as a percentage of the amount required to pull aggro. Will pull aggro at 100."],
+        desc = L["Your threat on the mob as a percentage of the amount required to pull aggro. Will pull aggro at 100."] .. "\n\n" .. "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["Threat amounts and percentages against bosses can be secret. Values for other enemies or enemies tracked by nameplates are generally available. When threat values are secret, this filter cannot match."],
         type = "number",
         store = true,
         conditionType = "number",
@@ -8405,7 +8457,7 @@ Private.event_prototypes = {
       {
         name = "rawthreatpct",
         display = L["Raw Threat Percent"],
-        desc = L["Your threat as a percentage of the tank's current threat."],
+        desc = L["Your threat as a percentage of the tank's current threat."] .. "\n\n" .. "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["Threat amounts and percentages against bosses can be secret. Values for other enemies or enemies tracked by nameplates are generally available. When threat values are secret, this filter cannot match."],
         type = "number",
         store = true,
         conditionType = "number",
@@ -8418,7 +8470,7 @@ Private.event_prototypes = {
       {
         name = "threatvalue",
         display = L["Threat Value"],
-        desc = L["Your total threat on the mob."],
+        desc = L["Your total threat on the mob."] .. "\n\n" .. "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["Threat amounts and percentages against bosses can be secret. Values for other enemies or enemies tracked by nameplates are generally available. When threat values are secret, this filter cannot match."],
         type = "number",
         store = true,
         conditionType = "number",
@@ -8813,7 +8865,8 @@ Private.event_prototypes = {
       {
         name = "secretFiltersDescription",
         type = "description",
-        display = L["Cast filters cannot match while their required information is secret. Cast information is secret in combat or while m+ is active. Own casts are never secret."],
+        display = "|cffffd200" .. L["Secret values"] .. "|r",
+        text = L["Casts from units other than you or your pet are normally secret, even outside combat. Some spells are always secret or never secret."] .. "\n\n" .. L["When the cast is secret, filters cannot check its name, spell ID, interruptibility, or remaining time. Leave those filters unchecked to display the cast name, icon, and progress."],
       },
       {
         name = "unit",
@@ -8834,7 +8887,7 @@ Private.event_prototypes = {
       },
       {
         name = "spellNames",
-        desc = L["When cast information is secret, this filter cannot match. The spell name can still be displayed."],
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When the cast is secret, this filter cannot match. Leave it unchecked to display the cast without checking its name."],
         display = L["Name(s)"],
         type = "spell",
         enable = function(trigger) return not trigger.use_inverse end,
@@ -8849,7 +8902,7 @@ Private.event_prototypes = {
       },
       {
         name = "spellIds",
-        desc = L["When cast information is secret, this filter cannot match."],
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When the cast is secret, this filter cannot match. Leave it unchecked to display the cast without checking its spell ID."],
         display = L["Exact Spell ID(s)"],
         type = "spell",
         enable = function(trigger) return not trigger.use_inverse end,
@@ -8890,7 +8943,7 @@ Private.event_prototypes = {
       },
       {
         name = "interruptible",
-        desc = L["When cast information is secret, neither Interruptible nor Not Interruptible can match."],
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When the cast is secret, neither Interruptible nor Not Interruptible can match. Leave this filter unchecked to show the cast."],
         display = L["Interruptible"],
         type = "tristate",
         enable = function(trigger) return not trigger.use_inverse end,
@@ -8907,7 +8960,7 @@ Private.event_prototypes = {
       },
       {
         name = "remaining",
-        desc = L["When cast information is secret, this filter cannot match. Cast progress can still be displayed."],
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When the cast is secret, this filter cannot match. Cast progress can still be displayed."],
         display = L["Remaining Time"],
         type = "number",
         enable = function(trigger) return not trigger.use_inverse end,
@@ -8938,7 +8991,7 @@ Private.event_prototypes = {
       },
       {
         name = "stage",
-        desc = L["When cast information is secret, the current stage is unavailable and this filter cannot match."],
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When the cast is secret, this filter cannot check the current empower stage. Leave it unchecked to display the cast."],
         display = L["Current Stage"],
         type = "number",
         enable = M33kAuras.IsRetail() and function(trigger) return not trigger.use_inverse end or false,
@@ -9050,7 +9103,7 @@ Private.event_prototypes = {
           return preamble:Check(state.npcId)
         end,
         operator_types = "none",
-        desc = L["Supports multiple entries, separated by commas. Prefix with '-' for negation."] .. "\n\n" .. L["When the NPC ID is secret, it is unavailable to this filter."],
+        desc = L["Supports multiple entries, separated by commas. Prefix with '-' for negation."] .. "\n\n" .. "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["NPC IDs can be secret even outside combat. When the NPC ID is secret, this filter cannot check it."],
         enable = function(trigger)
           return not trigger.use_inverse
         end,
@@ -9170,11 +9223,11 @@ Private.event_prototypes = {
         end,
         operator_types = "none",
         enable = function(trigger) return not trigger.use_inverse end,
-        desc = constants.nameRealmFilterDesc .. "\n\n" .. L["When the source name or realm is secret, this filter cannot match, including negated entries."],
+        desc = constants.nameRealmFilterDesc .. "\n\n" .. "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["Names can be secret even outside combat for units that are neither player-controlled nor in your group. Player names are normally available in PvP. When the source name or realm is secret, this filter cannot match. This also applies to names excluded with '-'."],
       },
       {
         name = "destUnit",
-        desc = L["When unit comparison is secret, this filter cannot match. Unit identity restrictions can apply independently of cast information."],
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["In dungeons and raids, Blizzard may prevent checking who a unit is targeting. Checks involving you or your target are normally allowed, but some others, such as whether a nameplate unit is a boss, can be blocked. When Blizzard blocks the check, this filter cannot match, even if the cast itself is not secret."],
         display = L["Caster's Target"],
         type = "unit",
         values = "actual_unit_types_with_specific",
@@ -9222,7 +9275,7 @@ Private.event_prototypes = {
         end,
         operator_types = "none",
         enable = function(trigger) return not trigger.use_inverse end,
-        desc = constants.nameRealmFilterDesc .. "\n\n" .. L["When the target name or realm is secret, this filter cannot match, including negated entries."],
+        desc = constants.nameRealmFilterDesc .. "\n\n" .. "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["The cast target's name can be secret even when the caster's name is available. Player names are normally available in PvP. When the target name or realm is secret, this filter cannot match. This also applies to names excluded with '-'."],
       },
       {
         type = "header",
@@ -9252,7 +9305,7 @@ Private.event_prototypes = {
       },
       {
         name = "ignoreSelf",
-        desc = L["When comparison with the player is secret, this filter cannot match and the cast is hidden."],
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When Blizzard prevents checking whether the caster is you, this option hides the cast. Leave it unchecked to show the cast."],
         display = L["Ignore Self"],
         type = "toggle",
         width = M33kAuras.doubleWidth,
@@ -9436,12 +9489,19 @@ Private.event_prototypes = {
     statesParameter = "one",
     args = {
       {
+        name = "secretValuesDescription",
+        type = "description",
+        display = "|cffffd200" .. L["Secret values"] .. "|r",
+        text = L["Like auras, character stats can become secret during combat, encounters, Mythic+ runs, or PvP matches. The exact rules depend on the stat and game version."] .. "\n\n" .. L["When a stat is secret or unavailable, filters that check it cannot match. Leave those filters unchecked to track other available stats. Some secret stats can still be displayed, but stats calculated from them may be unavailable until restrictions end."],
+      },
+      {
         type = "header",
         name = "primaryStatsHeader",
         display = L["Primary Stats"],
       },
       {
         name = "mainstat",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Main Stat"],
         type = "number",
         init = "UnitStat('player', main_stat or 1)",
@@ -9456,6 +9516,7 @@ Private.event_prototypes = {
       },
       {
         name = "strength",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Strength"],
         type = "number",
         init = M33kAuras.IsForever() and "select(2, UnitStat('player', LE_UNIT_STAT_STRENGTH))" or "UnitStat('player', LE_UNIT_STAT_STRENGTH)",
@@ -9470,6 +9531,7 @@ Private.event_prototypes = {
       },
       {
         name = "agility",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Agility"],
         type = "number",
         init = M33kAuras.IsForever() and "select(2, UnitStat('player', LE_UNIT_STAT_AGILITY))" or "UnitStat('player', LE_UNIT_STAT_AGILITY)",
@@ -9484,6 +9546,7 @@ Private.event_prototypes = {
       },
       {
         name = "intellect",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Intellect"],
         type = "number",
         init = M33kAuras.IsForever() and "select(2, UnitStat('player', LE_UNIT_STAT_INTELLECT))" or "UnitStat('player', LE_UNIT_STAT_INTELLECT)",
@@ -9498,6 +9561,7 @@ Private.event_prototypes = {
       },
       {
         name = "spirit",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Spirit"],
         type = "number",
         init = M33kAuras.IsForever() and "select(2, UnitStat('player', 5))" or "UnitStat('player', 5)",
@@ -9512,6 +9576,7 @@ Private.event_prototypes = {
       },
       {
         name = "stamina",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Stamina"],
         type = "number",
         init = M33kAuras.IsForever() and "select(2, UnitStat('player', LE_UNIT_STAT_STAMINA))"
@@ -9530,6 +9595,7 @@ Private.event_prototypes = {
       },
       {
         name = "criticalrating",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Critical Rating"],
         type = "number",
         init = "not statsAreSecret and max(GetCombatRating(CR_CRIT_MELEE), GetCombatRating(CR_CRIT_RANGED), GetCombatRating(CR_CRIT_SPELL)) or nil",
@@ -9544,6 +9610,7 @@ Private.event_prototypes = {
       },
       {
         name = "criticalpercent",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Critical (%)"],
         type = "number",
         init = "M33kAuras.GetCritChance()",
@@ -9557,6 +9624,7 @@ Private.event_prototypes = {
       },
       {
         name = "hitrating",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Hit Rating"],
         type = "number",
         init = "not statsAreSecret and max(GetCombatRating(CR_HIT_MELEE), GetCombatRating(CR_HIT_RANGED), GetCombatRating(CR_HIT_SPELL)) or nil",
@@ -9571,6 +9639,7 @@ Private.event_prototypes = {
       },
       {
         name = "hitpercent",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Hit (%)"],
         type = "number",
         init = "M33kAuras.GetHitChance()",
@@ -9586,6 +9655,7 @@ Private.event_prototypes = {
       },
       {
         name = "hasterating",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Haste Rating"],
         type = "number",
         init = "GetCombatRating(CR_HASTE_SPELL)",
@@ -9600,6 +9670,7 @@ Private.event_prototypes = {
       },
       {
         name = "hastepercent",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Haste (%)"],
         type = "number",
         init = M33kAuras.IsForever() and "M33kAuras.GetHaste()" or "GetHaste()",
@@ -9613,6 +9684,7 @@ Private.event_prototypes = {
       },
       {
         name = "meleehastepercent",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Melee Haste (%)"],
         type = "number",
         init = "GetMeleeHaste()",
@@ -9628,6 +9700,7 @@ Private.event_prototypes = {
       },
       {
         name = "expertiserating",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Expertise Rating"],
         type = "number",
         init = "GetCombatRating(CR_EXPERTISE)",
@@ -9642,6 +9715,7 @@ Private.event_prototypes = {
       },
       {
         name = "expertisebonus",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = M33kAuras.IsForever() and L["Expertise (%)"] or L["Expertise Bonus"],
         type = "number",
         init = M33kAuras.IsForever() and "not statsAreSecret and max(GetExpertise()) or nil" or "GetCombatRatingBonus(CR_EXPERTISE)",
@@ -9656,6 +9730,7 @@ Private.event_prototypes = {
       },
       {
         name = "armorpenrating",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Armor Peneration Rating"],
         type = "number",
         init = "GetCombatRating(CR_ARMOR_PENETRATION)",
@@ -9670,6 +9745,7 @@ Private.event_prototypes = {
       },
       {
         name = "armorpenpercent",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = M33kAuras.IsForever() and L["Armor Penetration"] or L["Armor Peneration Percent"],
         type = "number",
         init = "GetArmorPenetration()",
@@ -9684,6 +9760,7 @@ Private.event_prototypes = {
       },
       {
         name = "spellpenpercent",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = M33kAuras.IsForever() and L["Spell Penetration"] or L["Spell Peneration Percent"],
         type = "number",
         init = "GetSpellPenetration()",
@@ -9699,6 +9776,7 @@ Private.event_prototypes = {
       },
       {
         name = "masteryrating",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Mastery Rating"],
         type = "number",
         init = "GetCombatRating(CR_MASTERY)",
@@ -9713,6 +9791,7 @@ Private.event_prototypes = {
       },
       {
         name = "masterypercent",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Mastery (%)"],
         type = "number",
         init = "M33kAuras.IsCataOrMists() and GetMastery() or GetMasteryEffect()",
@@ -9728,6 +9807,7 @@ Private.event_prototypes = {
       },
       {
         name = "versatilityrating",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Versatility Rating"],
         type = "number",
         init = "GetCombatRating(CR_VERSATILITY_DAMAGE_DONE)",
@@ -9742,6 +9822,7 @@ Private.event_prototypes = {
       },
       {
         name = "versatilitypercent",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Versatility (%)"],
         type = "number",
         init = "not statsAreSecret and (GetCombatRatingBonus(CR_VERSATILITY_DAMAGE_DONE) + GetVersatilityBonus(CR_VERSATILITY_DAMAGE_DONE)) or nil",
@@ -9757,6 +9838,7 @@ Private.event_prototypes = {
       },
       {
         name = "attackpower",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Attack Power"],
         type = "number",
         init = "M33kAuras.GetEffectiveAttackPower()",
@@ -9769,6 +9851,7 @@ Private.event_prototypes = {
       },
       {
         name = "spellpower",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Spell Power"],
         type = "number",
         init = "M33kAuras.GetEffectiveSpellPower()",
@@ -9788,6 +9871,7 @@ Private.event_prototypes = {
       },
       {
         name = "leechrating",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Leech Rating"],
         type = "number",
         init = "GetCombatRating(CR_LIFESTEAL)",
@@ -9802,6 +9886,7 @@ Private.event_prototypes = {
       },
       {
         name = "leechpercent",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Leech (%)"],
         type = "number",
         init = "GetLifesteal()",
@@ -9817,6 +9902,7 @@ Private.event_prototypes = {
       },
       {
         name = "movespeedrating",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Movement Speed Rating"],
         type = "number",
         init = "GetCombatRating(CR_SPEED)",
@@ -9838,6 +9924,7 @@ Private.event_prototypes = {
       },
       {
         name = "movespeedpercent",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Current Movement Speed (%)"],
         type = "number",
         init = "not statsAreSecret and (GetUnitSpeed('player') / 7 * 100) or nil",
@@ -9851,6 +9938,7 @@ Private.event_prototypes = {
       },
       {
         name = "runspeedpercent",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Run Speed (%)"],
         type = "number",
         init = "not statsAreSecret and (select(2, GetUnitSpeed('player')) / 7 * 100) or nil",
@@ -9864,6 +9952,7 @@ Private.event_prototypes = {
       },
       {
         name = "avoidancerating",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Avoidance Rating"],
         type = "number",
         init = "GetCombatRating(CR_AVOIDANCE)",
@@ -9878,6 +9967,7 @@ Private.event_prototypes = {
       },
       {
         name = "avoidancepercent",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Avoidance (%)"],
         type = "number",
         init = "GetAvoidance()",
@@ -9898,6 +9988,7 @@ Private.event_prototypes = {
       },
       {
         name = "defense",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Defense"],
         type = "number",
         init = M33kAuras.IsForever() and "M33kAuras.GetDefense()"
@@ -9913,6 +10004,7 @@ Private.event_prototypes = {
       },
       {
         name = "dodgerating",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Dodge Rating"],
         type = "number",
         init = "GetCombatRating(CR_DODGE)",
@@ -9927,6 +10019,7 @@ Private.event_prototypes = {
       },
       {
         name = "dodgepercent",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Dodge (%)"],
         type = "number",
         init = "GetDodgeChance()",
@@ -9940,6 +10033,7 @@ Private.event_prototypes = {
       },
       {
         name = "parryrating",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Parry Rating"],
         type = "number",
         init = "GetCombatRating(CR_PARRY)",
@@ -9954,6 +10048,7 @@ Private.event_prototypes = {
       },
       {
         name = "parrypercent",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Parry (%)"],
         type = "number",
         init = "GetParryChance()",
@@ -9967,6 +10062,7 @@ Private.event_prototypes = {
       },
       {
         name = "blockpercent",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Block (%)"],
         type = "number",
         init = "GetBlockChance()",
@@ -9980,6 +10076,7 @@ Private.event_prototypes = {
       },
       {
         name = "blocktargetpercent",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Block against Target (%)"],
         type = "number",
         init = "not statsAreSecret and PaperDollFrame_GetArmorReductionAgainstTarget(GetShieldBlock()) or nil",
@@ -9995,6 +10092,7 @@ Private.event_prototypes = {
       },
       {
         name = "blockvalue",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Block Value"],
         type = "number",
         init = "GetShieldBlock()",
@@ -10007,6 +10105,7 @@ Private.event_prototypes = {
       },
       {
         name = "staggerpercent",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Stagger (%)"],
         type = "number",
         init = "C_PaperDollInfo.GetStaggerPercentage(\"player\")",
@@ -10022,6 +10121,7 @@ Private.event_prototypes = {
       },
       {
         name = "staggertargetpercent",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Stagger against Target (%)"],
         type = "number",
         init = "select(UnitExists(\"target\") and 2 or 1, C_PaperDollInfo.GetStaggerPercentage(\"player\"))",
@@ -10037,6 +10137,7 @@ Private.event_prototypes = {
       },
       {
         name = "armorrating",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = M33kAuras.IsForever() and L["Armor"] or L["Armor Rating"],
         type = "number",
         init = "select(2, UnitArmor('player'))",
@@ -10049,6 +10150,7 @@ Private.event_prototypes = {
       },
       {
         name = "armorpercent",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Armor (%)"],
         type = "number",
         init = "not statsAreSecret and PaperDollFrame_GetArmorReduction(select(2, UnitArmor('player')), UnitEffectiveLevel and UnitEffectiveLevel('player') or UnitLevel('player')) or nil",
@@ -10064,6 +10166,7 @@ Private.event_prototypes = {
       },
       {
         name = "armortargetpercent",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Armor against Target (%)"],
         type = "number",
         init = "not statsAreSecret and PaperDollFrame_GetArmorReductionAgainstTarget(select(2, UnitArmor('player'))) or nil",
@@ -10079,6 +10182,7 @@ Private.event_prototypes = {
       },
       {
         name = "resiliencerating",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Resilience Rating"],
         type = "number",
         init = "GetCombatRating(COMBAT_RATING_RESILIENCE_PLAYER_DAMAGE_TAKEN)",
@@ -10093,6 +10197,7 @@ Private.event_prototypes = {
       },
       {
         name = "resiliencepercent",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Resilience (%)"],
         type = "number",
         init = "GetCombatRatingBonus(COMBAT_RATING_RESILIENCE_PLAYER_DAMAGE_TAKEN)",
@@ -10115,6 +10220,7 @@ Private.event_prototypes = {
       },
       {
         name = "resistanceholy",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Holy Resistance"],
         type = "number",
         init = "select(2, UnitResistance('player', 1))",
@@ -10129,6 +10235,7 @@ Private.event_prototypes = {
       },
       {
         name = "resistancefire",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Fire Resistance"],
         type = "number",
         init = "select(2, UnitResistance('player', 2))",
@@ -10143,6 +10250,7 @@ Private.event_prototypes = {
       },
       {
         name = "resistancenature",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Nature Resistance"],
         type = "number",
         init = "select(2, UnitResistance('player', 3))",
@@ -10157,6 +10265,7 @@ Private.event_prototypes = {
       },
       {
         name = "resistancefrost",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Frost Resistance"],
         type = "number",
         init = "select(2, UnitResistance('player', 4))",
@@ -10171,6 +10280,7 @@ Private.event_prototypes = {
       },
       {
         name = "resistanceshadow",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Shadow Resistance"],
         type = "number",
         init = "select(2, UnitResistance('player', 5))",
@@ -10185,6 +10295,7 @@ Private.event_prototypes = {
       },
       {
         name = "resistancearcane",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When this stat is secret or unavailable, this filter cannot match. Leave it unchecked to track other available stats."],
         display = L["Arcane Resistance"],
         type = "number",
         init = "select(2, UnitResistance('player', 6))",

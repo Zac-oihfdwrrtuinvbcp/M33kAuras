@@ -224,7 +224,7 @@ local function visible(mode)
   local fn = setfenv(assert(loadstring("return function(state) " .. generated .. "\nreturn genericShowOn end")), f.env)()
   return not not fn({})
 end
-T.expect(not visible("showOnReady") and not visible("showOnCooldown"), "unknown readiness matches neither visibility filter")
+T.expect(not visible("showOnReady") and visible("showOnCooldown"), "unknown readiness defaults to On Cooldown, not Ready")
 T.expect(visible("showAlways"), "unknown readiness still allows unconditional duration display")
 f:send("SPELL_UPDATE_COOLDOWN", 45)
 T.expect(not visible("showOnReady") and visible("showOnCooldown"), "known cooldown matches only On Cooldown")

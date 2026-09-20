@@ -531,6 +531,24 @@ local function GetGenericTriggerOptions(data, triggernum)
       print("|cFF8800FFM33kAuras|r: No prototype for", trigger.event);
     end
     if (prototypeOptions) then
+      local secrecyDescription = prototypeOptions.description_secretValuesDescription
+        or prototypeOptions.description_secretFiltersDescription
+      if secrecyDescription then
+        secrecyDescription.fontSize = "medium"
+      end
+      local secrecyKind = trigger.event == "Cast" and "cast"
+        or (trigger.event == "Cooldown Progress (Spell)" or trigger.event == "Cooldown Ready (Spell)"
+          or trigger.event == "Charges Changed") and "cooldown"
+      if secrecyKind then
+        prototypeOptions.neverSecretSpells = {
+          type = "execute",
+          name = secrecyKind == "cast" and L["Browse never-secret casts"] or L["Browse never-secret cooldowns"],
+          desc = L["Search Blizzard's never-secret spells by name or ID."],
+          width = M33kAuras.doubleWidth,
+          order = secrecyDescription.order + 0.1,
+          func = function() OptionsPrivate.OpenSpellSecrecyList(secrecyKind) end,
+        }
+      end
       Mixin(options, prototypeOptions);
     end
   end
