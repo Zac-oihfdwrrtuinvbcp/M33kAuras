@@ -12,6 +12,7 @@ local tests = {
   "animations_test.lua",
   "aura_environment_test.lua",
   "aura_environment_stack_test.lua",
+  "aura_scan_test.lua",
   "character_stats_test.lua",
   "common_options_test.lua",
   "cooldown_test.lua",

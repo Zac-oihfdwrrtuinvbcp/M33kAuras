@@ -302,39 +302,38 @@ local function CheckScanFuncs(scanFuncs, unit, filter, key)
   end
 end
 
--- In Midnight 12.1 and Forever, aura enumeration is restricted while auras are secret.
--- but we can call C_UnitAuras.GetUnitAuraBySpellID for each spell id we're interested in
--- downside of that workaround is that we can't track multiple instances of the same spell id
--- and in case there are multiple auras with the same spell id we can't control which aura we are tracking
-local function SafeForEachAura(unit, filter, maxCount, func, usePackedAura)
-  if not C_Secrets.ShouldAurasBeSecret() then
-    return AuraUtil.ForEachAura(unit, filter, maxCount, func, usePackedAura)
-  else
-
-    local sfs = GetSubTable(scanFuncSpellId, unit, filter)
-    if sfs then
-      for spellID in next, sfs do
-        local auraData = C_UnitAuras.GetUnitAuraBySpellID(unit, spellID)
-        if auraData then
-          if (filter == "HELPFUL" and auraData.isHelpful) or (filter == "HARMFUL" and auraData.isHarmful) then
-            func(auraData)
-          end
-        end
-      end
+local function ForEachRegisteredAura(unit, filter, registrations, byName, seen, func)
+  if not registrations then return end
+  for spell in next, registrations do
+    local auraData
+    if byName then
+      auraData = C_UnitAuras.GetAuraDataBySpellName(unit, spell, filter)
+    else
+      auraData = C_UnitAuras.GetUnitAuraBySpellID(unit, spell)
     end
-
-    local sfsg = GetSubTable(scanFuncSpellIdGroup, unit, filter)
-    if sfsg then
-      for spellID in next, sfsg do
-        local auraData = C_UnitAuras.GetUnitAuraBySpellID(unit, spellID)
-        if auraData then
-          if (filter == "HELPFUL" and auraData.isHelpful) or (filter == "HARMFUL" and auraData.isHarmful) then
-            func(auraData)
-          end
-        end
+    if auraData and ((filter == "HELPFUL" and auraData.isHelpful) or (filter == "HARMFUL" and auraData.isHarmful)) then
+      local auraInstanceID = auraData.auraInstanceID
+      if not seen[auraInstanceID] then
+        seen[auraInstanceID] = true
+        func(auraData)
       end
     end
   end
+end
+
+-- In Midnight 12.1 and Forever, restricted enumeration requires direct lookups
+-- of non-secret auras by registered spell ID or name. Each lookup returns only
+-- one matching instance; we cannot choose which instance it returns.
+local function SafeForEachAura(unit, filter, maxCount, func, usePackedAura)
+  if not C_Secrets.ShouldAurasBeSecret() then
+    return AuraUtil.ForEachAura(unit, filter, maxCount, func, usePackedAura)
+  end
+
+  local seen = {}
+  ForEachRegisteredAura(unit, filter, GetSubTable(scanFuncSpellId, unit, filter), false, seen, func)
+  ForEachRegisteredAura(unit, filter, GetSubTable(scanFuncSpellIdGroup, unit, filter), false, seen, func)
+  ForEachRegisteredAura(unit, filter, GetSubTable(scanFuncName, unit, filter), true, seen, func)
+  ForEachRegisteredAura(unit, filter, GetSubTable(scanFuncNameGroup, unit, filter), true, seen, func)
 end
 
 ---@class TooltipHelper
