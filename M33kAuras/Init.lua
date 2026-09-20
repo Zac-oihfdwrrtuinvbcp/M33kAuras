@@ -54,7 +54,7 @@ Private.frames = {}
 --- @class Private
 --- @field ActivateAuraEnvironment fun(id: auraId?, cloneId: string?, state: state?, states: state[]?, config: boolean?)
 --- @field ActivateAuraEnvironmentForRegion fun(region: table, onlyConfig: boolean?)
---- @field ActivateAuraEnvironmentLifecycle fun(id: auraId)
+--- @field ActivateAuraEnvironmentLifecycle fun(id: auraId, allowDuringSetup: boolean?)
 --- @field DeactivateAuraEnvironmentLifecycle fun(id: auraId)
 --- @field AddToWatchedTriggerDelay fun(id: auraId, triggerNum: number)
 --- @field anchor_frame_types table<anchorFrameTypes, string>

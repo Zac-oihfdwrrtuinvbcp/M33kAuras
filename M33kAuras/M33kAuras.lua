@@ -2044,8 +2044,9 @@ local function HasCustomEnvironmentLifecycle(id)
   return functions and (functions["load"] or functions["unload"])
 end
 
-function Private.ActivateAuraEnvironmentLifecycle(id)
-  if unloadingAllDisplays or loadingDisplays[id] or rebuildingDisplays[id]
+function Private.ActivateAuraEnvironmentLifecycle(id, allowDuringSetup)
+  if unloadingAllDisplays
+     or (not allowDuringSetup and (loadingDisplays[id] or rebuildingDisplays[id]))
      or not runtimeActiveDisplays[id] or runtimeActiveAuraEnvironments[id]
      or not HasCustomEnvironmentLifecycle(id)
   then
@@ -2073,15 +2074,17 @@ function Private.DeactivateAuraEnvironmentLifecycle(id)
   end
 end
 
-local function EnsureAuraEnvironmentLifecycle(id)
-  if unloadingAllDisplays or rebuildingDisplays[id] or not runtimeActiveDisplays[id]
+local function EnsureAuraEnvironmentLifecycle(id, allowDuringSetup)
+  if unloadingAllDisplays
+     or (not allowDuringSetup and (loadingDisplays[id] or rebuildingDisplays[id]))
+     or not runtimeActiveDisplays[id]
      or runtimeActiveAuraEnvironments[id] or not HasCustomEnvironmentLifecycle(id)
   then
     return
   end
 
   Private.ActivateAuraEnvironment(id)
-  Private.ActivateAuraEnvironmentLifecycle(id)
+  Private.ActivateAuraEnvironmentLifecycle(id, allowDuringSetup)
   Private.ActivateAuraEnvironment(nil)
 end
 
@@ -2182,6 +2185,9 @@ end
 
 function Private.UnloadDisplays(toUnload, ...)
   for id in pairs(toUnload) do
+    Private.regions[id].region:Collapse();
+    Private.CollapseAllClones(id);
+
     local wasActive = runtimeActiveDisplays[id]
     runtimeActiveDisplays[id] = nil
 
@@ -2216,9 +2222,6 @@ function Private.UnloadDisplays(toUnload, ...)
 
     local uid = M33kAuras.GetData(id).uid
     Private.UnloadConditions(uid)
-
-    Private.regions[id].region:Collapse();
-    Private.CollapseAllClones(id);
 
     -- Even though auras are collapsed, their finish animation can be running
     Private.CancelAnimation(Private.regions[id].region, true, true, true, true, true, true)
@@ -4015,6 +4018,9 @@ function Private.PerformActions(data, when, region)
   local actions;
   local formatters
   if(when == "start") then
+    -- Loading triggers can synchronously show a region. Start its environment
+    -- lifecycle before any onShow action, even if display setup is still running.
+    EnsureAuraEnvironmentLifecycle(data.id, true)
     actions = data.actions.start;
     formatters = region.startFormatters
   elseif(when == "finish") then
