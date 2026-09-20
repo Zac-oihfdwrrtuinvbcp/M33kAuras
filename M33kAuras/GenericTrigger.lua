@@ -2023,22 +2023,22 @@ do
     return runeDuration
   end
 
+  -- Waiting for an update on this Wishlist thread in wowuidev to treat Shoot as GCD for C_Spell APIs
+  -- https://discord.com/channels/327414731654692866/1551071302113034270
+  -- https://github.com/WeakAuras/WeakAuras2/issues/1691
+  -- shootStart, shootDuration = GetSpellCooldown(5019)
+
+  local GCD_SPELLID = M33kAuras.IsForever() and 29515 or 61304
   local function CheckGCD()
-    if C_Secrets.ShouldSpellCooldownBeSecret(61304) then return end
+    if C_Secrets.ShouldSpellCooldownBeSecret(GCD_SPELLID) then return end
     local event;
     local startTime, duration, _, modRate
-    if M33kAuras.IsClassicOrWrath() then
-      startTime, duration = GetSpellCooldown(29515);
-      shootStart, shootDuration = GetSpellCooldown(5019)
-    elseif GetSpellCooldown then
-      startTime, duration, _, modRate = GetSpellCooldown(61304);
-    else
-      local spellCooldownInfo = C_Spell.GetSpellCooldown(61304);
-      if spellCooldownInfo then
-        startTime = spellCooldownInfo.startTime
-        duration = spellCooldownInfo.duration
-        modRate = spellCooldownInfo.modRate
-      end
+
+    local spellCooldownInfo = C_Spell.GetSpellCooldown(GCD_SPELLID);
+    if spellCooldownInfo then
+      startTime = spellCooldownInfo.startTime
+      duration = spellCooldownInfo.duration
+      modRate = spellCooldownInfo.modRate
     end
     if(duration and duration > 0) then
       if not(gcdStart) then
