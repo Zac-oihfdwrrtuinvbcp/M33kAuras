@@ -4279,9 +4279,9 @@ Private.event_prototypes = {
 
       local showOnCheck = "false";
       if (trigger.genericShowOn == "showOnReady") then
-        showOnCheck = "(isSecret and isReady) or (not isSecret and startTime and startTime == 0 or gcdCooldown)";
+        showOnCheck = "(isSecret and isReady == true) or (not isSecret and startTime and startTime == 0 or gcdCooldown)";
       elseif (trigger.genericShowOn == "showOnCooldown") then
-        showOnCheck = "(isSecret and not isReady) or (not isSecret and startTime and startTime > 0 and not gcdCooldown)";
+        showOnCheck = "(isSecret and isReady == false) or (not isSecret and startTime and startTime > 0 and not gcdCooldown)";
       elseif (trigger.genericShowOn == "showAlways") then
         showOnCheck = "startTime ~= nil or durationObject ~= nil";
       end
@@ -4385,6 +4385,7 @@ Private.event_prototypes = {
         local trackedCharge = tonumber(trigger.trackcharge) or 1;
         table.insert(ret, ([=[
           local trackedCharge = %s
+          if issecretvalue(charges) then return false end
           if (charges > trackedCharge) then
             if (state.expirationTime ~= 0) then
               state.expirationTime = 0;
@@ -4399,9 +4400,8 @@ Private.event_prototypes = {
             state.total = nil;
             state.progressType = 'timed';
           else
-            if duration then
-              expirationTime = expirationTime + (trackedCharge - charges) * duration
-            end
+            if not duration then return false end
+            expirationTime = expirationTime + (trackedCharge - charges) * duration
             if (state.expirationTime ~= expirationTime) then
               state.expirationTime = expirationTime;
               state.changed = true;

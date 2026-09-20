@@ -2102,16 +2102,58 @@ do
     return 0, 0, nil, nil, 1.0
   end
 
+  local spellReadiness = {}
+
+  local function UpdateSpellReadiness(id, fromCooldownEvent)
+    local info = C_Spell.GetSpellCooldown(id)
+    local previous = spellReadiness[id]
+    local restricted = C_Secrets.ShouldSpellCooldownBeSecret(id)
+    local ready
+    if info then
+      if info.isEnabled == false then
+        ready = false
+      elseif info.isActive == false then
+        ready = true
+      elseif fromCooldownEvent and info.isOnGCD ~= nil then
+        -- This field is only reliable while handling SPELL_UPDATE_COOLDOWN.
+        ready = info.isOnGCD
+      elseif not restricted then
+        if info.startTime and info.duration then
+          ready = info.duration == 0 or info.startTime + info.duration <= GetTime()
+            or (info.startTime == gcdStart and info.duration == gcdDuration)
+        end
+      elseif not fromCooldownEvent and previous and previous.restricted == restricted
+        and previous.active == info.isActive and previous.enabled == info.isEnabled
+      then
+        -- Unrelated refreshes retain the last event's classification. A change
+        -- in activity or secrecy needs fresh evidence before reporting ready.
+        ready = previous.ready
+      end
+    end
+    spellReadiness[id] = {
+      ready = ready,
+      active = info and info.isActive,
+      enabled = info and info.isEnabled,
+      restricted = restricted,
+    }
+  end
+
   local function HandleSpell(self, id, startTime, duration, modRate, paused)
     local changed = false
     local nowReady = false
-    if C_Secrets.ShouldSpellCooldownBeSecret(id) then
+    local wasReady = self.readyState[id]
+    local wasRestricted = self.restricted[id]
+    self.restricted[id] = C_Secrets.ShouldSpellCooldownBeSecret(id)
+    if self.restricted[id] then
       local isReady = M33kAuras.IsSpellReady(id)
-      changed = self.readyState[id] ~= isReady
+      changed = wasReady ~= isReady or self.duration[id] ~= nil
       self.readyState[id] = isReady
-      return changed, isReady
+      self.duration[id], self.expirationTime[id], self.remainingTime[id] = nil, nil, nil
+      self.readyTime[id], self.modRate[id] = nil, nil
+      RecheckHandles:Cancel(id)
+      return changed, wasReady == false and isReady == true
     else
-      self.readyState[id] = nil
+      self.readyState[id] = M33kAuras.IsSpellReady(id)
     end
 
     local time = GetTime()
@@ -2168,6 +2210,9 @@ do
           nowReady = true
         end
         RecheckHandles:Schedule(endTime, id)
+        if wasRestricted then
+          nowReady = wasReady == false and self.readyState[id] == true
+        end
         return changed, nowReady
       end
     end
@@ -2202,6 +2247,9 @@ do
     end
 
     RecheckHandles:Schedule(endTime, id)
+    if wasRestricted then
+      nowReady = wasReady == false and self.readyState[id] == true
+    end
     return changed, nowReady
   end
 
@@ -2223,7 +2271,8 @@ do
       readyTime = {},
       modRate = {},
       handles = {}, -- Share handles, and use lowest time to schedule
-      readyState = {}, -- whether the spell was ready, values are niled out when spell cd is not a secret
+      readyState = {}, -- Last known readiness; nil means unknown.
+      restricted = {},
       HandleSpell = HandleSpell,
       FetchSpellCooldown = FetchSpellCooldown
     }
@@ -2270,6 +2319,10 @@ do
     watchedSpellIds = {
 
     },
+    -- Event spell ID -> effective spell IDs, reference-counted across watch modes.
+    cooldownEventSpells = {},
+    cooldownEventRoutes = {},
+    normalizedEventSpellIds = {},
 
     -- Interprets the basic information to figure out whether an ability is on cd or not
     -- for th various different api variants we have
@@ -2281,8 +2334,47 @@ do
     spellCdsCharges = CreateSpellCDHandler(),
 
     -- Helper functions
+    RebuildCooldownEventRoutes = function(self)
+      local routes = {}
+      for id, targets in pairs(self.cooldownEventSpells) do
+        local normalizedId = self.normalizedEventSpellIds[id]
+        if normalizedId == nil then
+          normalizedId = Private.ExecEnv.GetEffectiveSpellId(id) or false
+          self.normalizedEventSpellIds[id] = normalizedId
+        end
+        local normalizedTargets = self.cooldownEventSpells[normalizedId]
+        if normalizedTargets and normalizedTargets ~= targets then
+          local combined = {}
+          for target in pairs(targets) do combined[target] = true end
+          for target in pairs(normalizedTargets) do combined[target] = true end
+          routes[id] = combined
+        else
+          routes[id] = targets
+        end
+      end
+      self.cooldownEventRoutes = routes
+    end,
+
+    UpdateCooldownEventRoute = function(self, eventSpellId, effectiveSpellId, delta)
+      local targets = self.cooldownEventSpells[eventSpellId]
+      if not targets then
+        targets = {}
+        self.cooldownEventSpells[eventSpellId] = targets
+      end
+      local oldCount = targets[effectiveSpellId] or 0
+      local count = oldCount + delta
+      targets[effectiveSpellId] = count > 0 and count or nil
+      if not next(targets) then self.cooldownEventSpells[eventSpellId] = nil end
+      return (oldCount > 0) ~= (count > 0)
+    end,
+
     AddEffectiveSpellId = function(self, effectiveSpellId, userSpellId)
-      if C_Secrets.ShouldSpellCooldownBeSecret(effectiveSpellId) or C_Secrets.ShouldSpellCooldownBeSecret(userSpellId) then return end
+      if not effectiveSpellId then return end
+      local routesChanged = self:UpdateCooldownEventRoute(effectiveSpellId, effectiveSpellId, 1)
+      if userSpellId ~= effectiveSpellId then
+        routesChanged = self:UpdateCooldownEventRoute(userSpellId, effectiveSpellId, 1) or routesChanged
+      end
+      if routesChanged then self:RebuildCooldownEventRoutes() end
       if self.data[effectiveSpellId] then
         self.data[effectiveSpellId].watched[userSpellId] = (self.data[effectiveSpellId].watched[userSpellId] or 0) + 1
         return
@@ -2299,6 +2391,8 @@ do
 
       local spellDetail = self.data[effectiveSpellId]
       spellDetail.known = M33kAuras.IsSpellKnownIncludingPet(effectiveSpellId)
+      spellDetail.restricted = C_Secrets.ShouldSpellCooldownBeSecret(effectiveSpellId)
+      UpdateSpellReadiness(effectiveSpellId)
 
       local charges, maxCharges, startTime, duration, unifiedCooldownBecauseRune,
             startTimeCooldown, durationCooldown, cooldownBecauseRune, startTimeCharges, durationCharges,
@@ -2337,6 +2431,11 @@ do
               local oldSpellDetail = self.data[oldEffectiveSpellId]
               local newSpellDetail = self.data[newEffectiveSpellId]
               if oldSpellDetail and newSpellDetail then
+                local routesChanged = self:UpdateCooldownEventRoute(oldEffectiveSpellId, oldEffectiveSpellId, -1)
+                if userSpellId ~= oldEffectiveSpellId then
+                  routesChanged = self:UpdateCooldownEventRoute(userSpellId, oldEffectiveSpellId, -1) or routesChanged
+                end
+                if routesChanged then self:RebuildCooldownEventRoutes() end
                 -- Check whether we need to emit the SPELL_CHARGES_CHANGED or SPELL_COOLDOWN_READY events
                 local chargesChanged = hasanysecretvalues(oldSpellDetail.charges, newSpellDetail.charges) or oldSpellDetail.charges ~= newSpellDetail.charges or
                   hasanysecretvalues(oldSpellDetail.count, newSpellDetail.count) or oldSpellDetail.count ~= newSpellDetail.count or
@@ -2358,6 +2457,7 @@ do
                   oldSpellDetail.watched[userSpellId] = nil
                   if next(self.data[oldEffectiveSpellId].watched) == nil then
                     self.data[oldEffectiveSpellId] = nil
+                    spellReadiness[oldEffectiveSpellId] = nil
                     RecheckHandles:Cancel(oldEffectiveSpellId)
                   end
                 else
@@ -2372,7 +2472,7 @@ do
                 if nowReady then
                   Private.ScanEventsByID("SPELL_COOLDOWN_READY", userSpellId, newEffectiveSpellId)
                 end
-                if chargesChanged ~= 0 then
+                if chargesChanged and chargesDifference ~= 0 then
                   Private.ScanEventsByID("SPELL_CHARGES_CHANGED", userSpellId, newEffectiveSpellId, chargesDifference, newCharge)
                 end
               end
@@ -2380,6 +2480,10 @@ do
           end
         end
       end
+
+      -- Rank normalization can change even when exact-ID subscriptions do not.
+      self.normalizedEventSpellIds = {}
+      self:RebuildCooldownEventRoutes()
 
       -- Check for changes in the effective spells
       local changed = {}
@@ -2408,13 +2512,42 @@ do
       end
     end,
 
-    CheckSpellCooldowns = function(self, runeDuration)
-      for id, _ in pairs(self.data) do
-        self:CheckSpellCooldown(id, runeDuration)
+    GetCooldownEventRoute = function(self, spellId)
+      if not spellId then return end
+      local targets = self.cooldownEventRoutes[spellId]
+      if not targets then
+        -- An unregistered rank may resolve to a watched spell. Known event IDs
+        -- use the index directly and do not resolve spell names on every event.
+        targets = self.cooldownEventRoutes[Private.ExecEnv.GetEffectiveSpellId(spellId)]
+      end
+      return targets
+    end,
+
+    CheckCooldownEventSpells = function(self, spellId, baseSpellId, runeDuration, fromCooldownEvent)
+      local spells = self:GetCooldownEventRoute(spellId)
+      local baseSpells = baseSpellId ~= spellId and self:GetCooldownEventRoute(baseSpellId)
+      if spells then
+        for id in pairs(spells) do
+          self:CheckSpellCooldown(id, runeDuration, fromCooldownEvent)
+        end
+      end
+      if baseSpells and baseSpells ~= spells then
+        for id in pairs(baseSpells) do
+          if not spells or not spells[id] then
+            self:CheckSpellCooldown(id, runeDuration, fromCooldownEvent)
+          end
+        end
       end
     end,
 
-    CheckSpellCooldown = function(self, effectiveSpellId, runeDuration)
+    CheckSpellCooldowns = function(self, runeDuration, fromCooldownEvent)
+      for id, _ in pairs(self.data) do
+        self:CheckSpellCooldown(id, runeDuration, fromCooldownEvent)
+      end
+    end,
+
+    CheckSpellCooldown = function(self, effectiveSpellId, runeDuration, fromCooldownEvent)
+      UpdateSpellReadiness(effectiveSpellId, fromCooldownEvent)
       local charges, maxCharges, startTime, duration, unifiedCooldownBecauseRune,
         startTimeCooldown, durationCooldown, cooldownBecauseRune, startTimeCharges, durationCharges,
         spellCount, unifiedModRate, modRate, modRateCharges, paused
@@ -2442,7 +2575,11 @@ do
         end
       end
 
-      local changed = false
+      -- Restricted timing can change without a readable value changing. Notify
+      -- only after refreshing charges and all cooldown handlers.
+      local restricted = C_Secrets.ShouldSpellCooldownBeSecret(effectiveSpellId)
+      local changed = restricted or spellDetail.restricted ~= restricted
+      spellDetail.restricted = restricted
       changed = self.spellCds:HandleSpell(effectiveSpellId, startTime, duration, unifiedModRate, paused) or changed
       if not unifiedCooldownBecauseRune then
         changed = self.spellCdsRune:HandleSpell(effectiveSpellId, startTime, duration, unifiedModRate, paused) or changed
@@ -2639,27 +2776,18 @@ do
         or event == "CHARACTER_POINTS_CHANGED" or event == "RUNE_TYPE_UPDATE")
         or event == "SPELL_UPDATE_USABLE" or event == "WA_SECRET_STATE_UPDATE"
       then
-        local spellId = nil
+        local spellId, baseSpellId
         if event == "SPELL_UPDATE_COOLDOWN" then
           local arg1, arg2 = ...
           if arg1 and type(arg1) == "number" then
             spellId = arg1
             baseSpellId = arg2
-            local effectiveSpellId1 = Private.ExecEnv.GetEffectiveSpellId(spellId)
-            if C_Secrets.ShouldSpellCooldownBeSecret(effectiveSpellId1) then
-              SpellDetails:SendEventsForSpell(effectiveSpellId1, "SPELL_COOLDOWN_CHANGED", effectiveSpellId1)
-
-              if baseSpellId then
-                effectiveSpellId2 = Private.ExecEnv.GetEffectiveSpellId(baseSpellId)
-                if effectiveSpellId1 ~= effectiveSpellId2 then
-                  SpellDetails:SendEventsForSpell(effectiveSpellId2, "SPELL_COOLDOWN_CHANGED", effectiveSpellId2)
-                end
-              end
-            end
+          else
+            -- Only a full refresh supersedes a pending action-bar refresh.
+            mark_ACTIONBAR_UPDATE_COOLDOWN = nil
           end
-          mark_ACTIONBAR_UPDATE_COOLDOWN = nil
         end
-        Private.CheckCooldownReady(spellId)
+        Private.CheckCooldownReady(spellId, baseSpellId, event == "SPELL_UPDATE_COOLDOWN")
       elseif(event == "SPELLS_CHANGED") then
         SpellDetails:CheckSpellKnown()
         Private.CheckCooldownReady()
@@ -3108,17 +3236,9 @@ do
 
   ---@type fun(id): boolean|nil
   function M33kAuras.IsSpellReady(id)
-    local cooldownInfo = C_Spell.GetSpellCooldown(id)
-    if not cooldownInfo then
-      return nil
-    end
-
-    -- should cover off gcd spells as well as normal spells
-    if cooldownInfo.isOnGCD == nil then
-      return cooldownInfo.timeUntilEndOfStartRecovery == nil
-    else
-      return cooldownInfo.isOnGCD == true
-    end
+    -- Watched spells use the refreshed snapshot, including event-only isOnGCD.
+    if not SpellDetails.data[id] then UpdateSpellReadiness(id) end
+    return spellReadiness[id].ready
   end
 
   -- for cooldown progress display, if charge is returned :IsZero will always be false
@@ -3297,16 +3417,16 @@ do
     end
   end
 
-  ---@type fun(spell: number|string?)
-  function Private.CheckCooldownReady(spell)
+  ---@param spell number|string?
+  ---@param baseSpell number?
+  ---@param fromCooldownEvent boolean?
+  function Private.CheckCooldownReady(spell, baseSpell, fromCooldownEvent)
     CheckGCD();
     local runeDuration = Private.CheckRuneCooldown();
     if spell then
-      if SpellDetails.data[spell] then
-        SpellDetails:CheckSpellCooldown(spell, runeDuration)
-      end
+      SpellDetails:CheckCooldownEventSpells(spell, baseSpell, runeDuration, fromCooldownEvent)
     else
-      SpellDetails:CheckSpellCooldowns(runeDuration);
+      SpellDetails:CheckSpellCooldowns(runeDuration, fromCooldownEvent);
       Private.CheckItemCooldowns();
       Private.CheckItemSlotCooldowns();
     end
