@@ -5794,23 +5794,30 @@ Private.event_prototypes = {
       ]=]
 
       if trigger.use_ignoreSpellCooldown then
-        ret = ret .. [=[local active = Private.ExecEnv.IsUsableSpell(spellName or "")]=]
+        ret = ret .. [=[local active = Private.ExecEnv.IsUsableSpell(effectiveSpellId)]=]
       else
         ret = ret .. [=[
-        local startTime, duration, gcdCooldown, readyTime, paused = M33kAuras.GetSpellCooldown(effectiveSpellId, nil, nil, nil, nil)
+        local _, _, _, readyTime = M33kAuras.GetSpellCooldown(effectiveSpellId)
         local charges, maxCharges, spellCount, chargeGainTime, chargeLostTime = M33kAuras.GetSpellCharges(effectiveSpellId, nil)
-        local stacks = maxCharges and maxCharges > 1 and charges
-                       or spellCount and spellCount > 0 and spellCount
-                       or nil
-        if (charges == nil) then
-          charges = (duration == 0 or gcdCooldown) and 1 or 0;
+        local stacks
+        if issecretvalue(maxCharges) then
+          stacks = charges
+        elseif maxCharges and maxCharges > 1 then
+          stacks = charges
+        elseif issecretvalue(spellCount) then
+          stacks = spellCount
+        elseif spellCount and spellCount > 0 then
+          stacks = spellCount
         end
-        local ready = (startTime == 0 and not paused) or charges > 0
-        local active = Private.ExecEnv.IsUsableSpell(spellName or "") and ready
+        local ready = M33kAuras.IsSpellReady(effectiveSpellId) == true
+        if charges == nil then
+          charges = ready and 1 or 0
+        end
+        local active = Private.ExecEnv.IsUsableSpell(effectiveSpellId) and ready
         ]=]
       end
       if(trigger.use_targetRequired) then
-        ret = ret.."active = active and M33kAuras.IsSpellInRange(spellName or '', 'target')\n";
+        ret = ret.."active = active and M33kAuras.IsSpellInRange(effectiveSpellId, 'target') ~= nil\n";
       end
       if(trigger.use_inverse) then
         ret = ret.."active = not active\n";
@@ -5826,6 +5833,12 @@ Private.event_prototypes = {
     end,
     GetNameAndIcon = GetNameAndIconForSpellName,
     args = {
+      {
+        name = "secretValuesDescription",
+        type = "description",
+        display = "|cffffd200" .. L["Secret values"] .. "|r",
+        text = L["Cooldowns can become secret during combat, encounters, Mythic+ runs, or PvP matches. Some spells are always secret or never secret."] .. "\n\n" .. L["When cooldown is secret, charge and spell counts can still be displayed, but filters cannot check secret counts. Enable Ignore Spell Cooldown/Charges to check only whether the spell is usable."],
+      },
       {
         name = "spellName",
         display = L["Spell"],
@@ -5857,6 +5870,7 @@ Private.event_prototypes = {
       },
       {
         name = "charges",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When cooldown is secret, this filter cannot match. The count can still be displayed."],
         display = L["Charges"],
         type = "number",
         enable = function(trigger) return not trigger.use_inverse and not trigger.use_ignoreSpellCooldown end,
@@ -5865,6 +5879,7 @@ Private.event_prototypes = {
       },
       {
         name = "spellCount",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When cooldown is secret, this filter cannot match. The count can still be displayed."],
         display = L["Spell Count"],
         type = "number",
         enable = function(trigger) return not trigger.use_ignoreSpellCooldown end,

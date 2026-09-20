@@ -538,7 +538,7 @@ local function GetGenericTriggerOptions(data, triggernum)
       end
       local secrecyKind = trigger.event == "Cast" and "cast"
         or (trigger.event == "Cooldown Progress (Spell)" or trigger.event == "Cooldown Ready (Spell)"
-          or trigger.event == "Charges Changed") and "cooldown"
+          or trigger.event == "Charges Changed" or trigger.event == "Action Usable") and "cooldown"
       if secrecyKind then
         prototypeOptions.neverSecretSpells = {
           type = "execute",

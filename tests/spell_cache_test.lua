@@ -340,7 +340,7 @@ f.options.ConstructOptions = function(prototype)
   return { [name] = { order = 12 }, unrelated = { order = 13 } }
 end
 setfenv(assert(loadfile(T.repoRoot .. "/M33kAurasOptions/GenericTrigger.lua")), f.env)("M33kAurasOptions", f.options)
-for _, event in ipairs({ "Cast", "Cooldown Progress (Spell)", "Cooldown Ready (Spell)", "Charges Changed", "Power" }) do
+for _, event in ipairs({ "Cast", "Cooldown Progress (Spell)", "Cooldown Ready (Spell)", "Charges Changed", "Action Usable", "Power" }) do
   f.options.Private.event_prototypes[event] = { cast = event == "Cast" }
   local options = builder({ id = "test", triggers = { { trigger = { type = "spell", event = event } } } }, 1)
   local _, args = next(options)
