@@ -26,6 +26,7 @@ local tests = {
   "talent_load_test.lua",
   "talent_trigger_test.lua",
   "threat_test.lua",
+  "totem_test.lua",
   "vehicle_test.lua",
 }
 

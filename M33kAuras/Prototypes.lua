@@ -6524,159 +6524,136 @@ Private.event_prototypes = {
     },
     internal_events = {
       "COOLDOWN_REMAINING_CHECK",
+      "WA_SECRET_STATE_UPDATE",
     },
     force_events = "PLAYER_ENTERING_WORLD",
     name = L["Totem"],
     statesParameter = "full",
     progressType = "timed",
     triggerFunction = function(trigger)
-      local ret = [[return
-      function (states, event, slotId)
-        local totemType = %s;
-        local triggerTotemName = %q
-        local triggerTotemPattern = %q
-        local triggerTotemPatternOperator = %q
-        local triggerSpellId = %s
-        local followoverride = %s
-        local triggerTotemIcon = %s
-        local triggerTotemIconOperator = %q
-        local clone = %s
-        local inverse = %s
-        local remainingCheck = %s
+      local ret = [[
+      local totemType = %s
+      local triggerTotemName = %q
+      local triggerTotemPattern = %q
+      local triggerTotemPatternOperator = %q
+      local triggerSpellId = %s
+      local followoverride = %s
+      local triggerTotemIcon = %s
+      local triggerTotemIconOperator = %q
+      local clone = %s
+      local inverse = %s
+      local remainingCheck = %s
+      local checkName = triggerTotemName ~= "" or triggerTotemPattern ~= ""
+      local checkRemaining = not inverse and remainingCheck
+      local needsReadableInfo = checkName or triggerTotemIcon or triggerSpellId or checkRemaining
 
-        local function checkActive(remaining)
-          return remaining %s remainingCheck;
+      return function(states, event, slotId)
+        if totemType and event == "PLAYER_TOTEM_UPDATE" and slotId ~= totemType then
+          return false
+        end
+        -- Clones and selected slots can update independently. First-match and
+        -- all-slot inverse displays still need to consider the other slots.
+        local updateSlot = event == "PLAYER_TOTEM_UPDATE" and (totemType or (clone and not inverse))
+        local resetId, state
+        if updateSlot then
+          resetId = totemType and "" or tostring(slotId)
+          state = states[resetId]
+        else
+          resetId, state = next(states)
+        end
+        while state do
+          state.show = false
+          state.changed = true
+          state.duration = nil
+          state.expirationTime = nil
+          state.modRate = nil
+          state.durationObject = nil
+          state.value, state.total = nil, nil
+          if updateSlot then break end
+          resetId, state = next(states, resetId)
         end
 
-        if (totemType) then -- Check a specific totem slot
-          if slotId and event == "PLAYER_TOTEM_UPDATE" and totemType ~= slotId then
-            -- PLAYER_TOTEM_UPDATE for a different slot
-            return false
-          end
-
-          local _, totemName, startTime, duration, icon, modRate, spellId = GetTotemInfo(totemType);
-          if issecretvalue(startTime) then
-            return false
-          end
-          active = (startTime and startTime ~= 0);
-
-          if not Private.ExecEnv.CheckTotemName(totemName, triggerTotemName, triggerTotemPattern, triggerTotemPatternOperator) then
-            active = false;
-          end
-
-          if not Private.ExecEnv.CheckTotemIcon(icon, triggerTotemIcon, triggerTotemIconOperator) then
-            active = false
-          end
-
-          if not Private.ExecEnv.CheckTotemSpellId(spellId, triggerSpellId, followoverride) then
-            active = false
-          end
-
-          if (inverse) then
-            active = not active;
-            if (triggerTotemName) then
-              icon = Private.ExecEnv.GetSpellIcon(triggerTotemName);
-            end
-          elseif (active and remainingCheck) then
-            local expirationTime = startTime and (startTime + duration) or 0;
-            local remainingTime = expirationTime - GetTime()
-            if (remainingTime >= remainingCheck) then
-              Private.ExecEnv.ScheduleScan(expirationTime - remainingCheck);
-            end
-            active = checkActive(remainingTime);
-          end
-          states[""] = states[""] or {}
-          local state = states[""];
-          state.show = active;
-          state.changed = true;
-          if (active) then
-            state.name = totemName;
-            state.totemName = totemName;
-            state.progressType = "timed";
-            state.duration = duration;
-            state.expirationTime = startTime and (startTime + duration);
-            state.modRate = modRate
-            state.spellId = spellId
-            state.icon = icon;
-          end
-        elseif inverse then -- inverse without a specific slot
-          local found = false;
-          for i = 1, 5 do
-            local _, totemName, startTime, duration, icon, modRate, spellId = GetTotemInfo(i);
-            if issecretvalue(startTime) then
-              return false
-            end
-            if ((startTime and startTime ~= 0)
-              and Private.ExecEnv.CheckTotemName(totemName, triggerTotemName, triggerTotemPattern, triggerTotemPatternOperator)
-              and Private.ExecEnv.CheckTotemIcon(icon, triggerTotemIcon, triggerTotemIconOperator)
-              and Private.ExecEnv.CheckTotemSpellId(spellId, triggerSpellId, followoverride)
-            ) then
-              found = true;
-            end
-          end
-          local cloneId = "";
-          states[cloneId] = states[cloneId] or {};
-          local state = states[cloneId];
-          state.show = not found;
-          state.changed = true;
-          state.name = triggerTotemName;
-          state.totemName = triggerTotemName;
-          if (triggerTotemName) then
-            state.icon = Private.ExecEnv.GetSpellIcon(triggerTotemName)
-          end
-        else -- cloning, check all slots
-          for i = 1, 5 do
-            local _, totemName, startTime, duration, icon, modRate, spellId = GetTotemInfo(i);
-            if issecretvalue(startTime) then
-              return false
-            end
-            active = (startTime and startTime ~= 0);
-
-            if not Private.ExecEnv.CheckTotemName(totemName, triggerTotemName, triggerTotemPattern, triggerTotemPatternOperator)
-              or not Private.ExecEnv.CheckTotemIcon(icon, triggerTotemIcon, triggerTotemIconOperator)
-              or not Private.ExecEnv.CheckTotemSpellId(spellId, triggerSpellId, followoverride)
-            then
-              active = false;
-            end
-            if (active and remainingCheck) then
-              local expirationTime = startTime and (startTime + duration) or 0;
-              local remainingTime = expirationTime - GetTime()
-              if (remainingTime >= remainingCheck) then
-                Private.ExecEnv.ScheduleScan(expirationTime - remainingCheck);
+        local first = updateSlot and slotId or totemType or 1
+        local last = updateSlot and slotId or totemType or GetNumTotemSlots()
+        local found, unknown = false, false
+        for slot = first, last do
+          local durationObject = GetTotemDuration(slot)
+          local matched = false
+          local _, name, startTime, duration, icon, modRate, spellId
+          local infoSecret
+          if durationObject ~= nil then
+            _, name, startTime, duration, icon, modRate, spellId = GetTotemInfo(slot)
+            -- All GetTotemInfo fields share the same secrecy.
+            infoSecret = issecretvalue(startTime)
+            if infoSecret then
+              matched = not needsReadableInfo
+              if needsReadableInfo then unknown = true end
+            else
+              matched = (not checkName or Private.ExecEnv.CheckTotemName(name, triggerTotemName, triggerTotemPattern, triggerTotemPatternOperator))
+                and (not triggerTotemIcon or Private.ExecEnv.CheckTotemIcon(icon, triggerTotemIcon, triggerTotemIconOperator))
+                and (not triggerSpellId or Private.ExecEnv.CheckTotemSpellId(spellId, triggerSpellId, followoverride))
+              if matched and checkRemaining then
+                local remaining = startTime + duration - GetTime()
+                if remaining >= remainingCheck and remaining > 0 then
+                  Private.ExecEnv.ScheduleScan(startTime + duration - remainingCheck, "COOLDOWN_REMAINING_CHECK")
+                end
+                matched = remaining %s remainingCheck
               end
-              active = checkActive(remainingTime);
-            end
-
-            local cloneId = clone and tostring(i) or "";
-            states[cloneId] = states[cloneId] or {};
-            local state = states[cloneId];
-            state.show = active;
-            state.changed = true;
-            if (active) then
-              state.name = totemName;
-              state.totemName = totemName;
-              state.progressType = "timed";
-              state.duration = duration;
-              state.modRate = modRate
-              state.spellId = spellId
-              state.expirationTime = startTime and (startTime + duration);
-              state.icon = icon;
-            end
-            if (active and not clone) then
-              break;
             end
           end
+
+          if matched then
+            found = true
+            if inverse then break end
+            local cloneId = clone and not totemType and tostring(slot) or ""
+            local state = states[cloneId]
+            if not state then
+              state = {}
+              states[cloneId] = state
+            end
+            state.show = true
+            state.changed = true
+            state.name = name
+            state.totemName = name
+            state.icon = icon
+            state.spellId = spellId
+            if infoSecret then
+              state.progressType = "durationObject"
+              state.durationObject = durationObject
+            else
+              state.progressType = "timed"
+              state.duration = duration
+              state.expirationTime = startTime and duration and startTime + duration
+              state.modRate = modRate
+            end
+            if totemType or not clone then break end
+          end
         end
-        return true;
+        if inverse and not found and not unknown then
+          local state = states[""]
+          if not state then
+            state = {}
+            states[""] = state
+          end
+          state.show = true
+          state.changed = true
+          state.name = triggerTotemName
+          state.totemName = triggerTotemName
+          state.icon = triggerTotemIcon or (triggerTotemName ~= "" and Private.ExecEnv.GetSpellIcon(triggerTotemName)) or nil
+          state.spellId = nil
+          state.progressType = "static"
+          state.value, state.total = 1, 1
+        end
+        return true
       end
-      ]];
+      ]]
       local totemName = tonumber(trigger.totemName) and Private.ExecEnv.GetSpellName(tonumber(trigger.totemName)) or trigger.totemName;
       ret = ret:format(trigger.use_totemType and tonumber(trigger.totemType) or "nil",
         trigger.use_totemName and totemName or "",
         trigger.use_totemNamePattern and trigger.totemNamePattern or "",
         trigger.use_totemNamePattern and trigger.totemNamePattern_operator or "",
-        M33kAuras.IsRetail() and trigger.use_totemSpellId and trigger.totemSpellId or "nil",
-        M33kAuras.IsRetail() and not trigger.use_ignoreoverride and "true" or "false",
+        (M33kAuras.IsRetail() or M33kAuras.IsForever()) and trigger.use_totemSpellId and trigger.totemSpellId or "nil",
+        (M33kAuras.IsRetail() or M33kAuras.IsForever()) and not trigger.use_ignoreoverride and "true" or "false",
         trigger.use_icon and trigger.icon or "nil",
         trigger.use_icon and trigger.icon_operator or "",
         trigger.use_clones and "true" or "false",
@@ -6690,7 +6667,7 @@ Private.event_prototypes = {
         name = "secretValuesDescription",
         type = "description",
         display = "|cffffd200" .. L["Secret values"] .. "|r",
-        text = L["Totem information can become secret during combat, encounters, Mythic+ runs, or PvP matches."] .. "\n\n" .. L["When totem information is secret, the trigger stops updating that totem. The display may keep showing old information until the totem information is available again."],
+        text = L["Totem information can become secret during combat, encounters, Mythic+ runs, or PvP matches."] .. "\n\n" .. L["When totem information is secret, the trigger can still detect the totem and display its name, icon, and progress. Name, icon, spell ID, and remaining time filters cannot check secret values. Leave those filters unchecked to display the totem. Inverse can still check for an empty slot, but cannot match when an enabled filter cannot be checked."],
       },
       {
         name = "totemType",
@@ -6704,20 +6681,22 @@ Private.event_prototypes = {
         type = "string",
         conditionType = "string",
         store = true,
-        desc = L["Enter a name or a spellId"]
+        desc = L["Enter a name or a spellId"] .. "\n\n" .. "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When totem information is secret, this filter cannot match."],
       },
       {
         name = "totemNamePattern",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When totem information is secret, this filter cannot match."],
         display = L["Totem Name Pattern Match"],
         type = "longstring",
       },
       {
         name = "totemSpellId",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When totem information is secret, this filter cannot match."],
         display = L["Spell Id"],
         type = "spell",
         conditionType = "number",
         operator_types = "only_equal",
-        enable = M33kAuras.IsRetail(),
+        enable = M33kAuras.IsRetail() or M33kAuras.IsForever(),
       },
       {
         name = "ignoreoverride",
@@ -6725,11 +6704,12 @@ Private.event_prototypes = {
         type = "toggle",
         test = "true",
         enable = function(trigger)
-          return trigger.use_totemSpellId and M33kAuras.IsRetail()
+          return trigger.use_totemSpellId and (M33kAuras.IsRetail() or M33kAuras.IsForever())
         end,
       },
       {
         name = "icon",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When totem information is secret, this filter cannot match."],
         display = L["Totem Icon"],
         type = "number",
         conditionType = "number",
@@ -6738,6 +6718,7 @@ Private.event_prototypes = {
       },
       {
         name = "inverse",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When totem information is secret, this option only matches if the trigger can confirm that no matching totem is present."],
         display = L["Inverse"],
         type = "toggle",
         test = "true",
@@ -6751,6 +6732,7 @@ Private.event_prototypes = {
       },
       {
         name = "remaining",
+        desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["When totem information is secret, this filter cannot match."],
         display = L["Remaining Time"],
         type = "number",
         enable = function(trigger) return not(trigger.use_inverse) end
