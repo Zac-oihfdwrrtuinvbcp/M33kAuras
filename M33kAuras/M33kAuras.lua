@@ -202,7 +202,7 @@ function Private.PrintHelp()
   print(L["/wa pprint - Show the results from the most recent profiling"])
   print(L["/wa repair - Repair tool"])
   print(L["/wa trackprint - Toggle the display of a hyperlink in the chat frame when an aura prints a message."])
-  print(L["If you require additional assistance, please open a ticket on GitHub or visit our Discord at https://discord.gg/M33kAuras!"])
+  print(L["If you require additional assistance, please open a ticket on GitHub."])
 end
 
 SLASH_M33kAuras1, SLASH_M33kAuras2 = "/wa", "/M33kAuras";
@@ -2868,7 +2868,7 @@ function Private.AddMany(tbl, takeSnapshots)
     else
       if next(M33kAuras.LoadFromArchive("Repository", "migration").stores) ~= nil then
         C_Timer.After(1, function()
-          prettyPrint(L["M33kAuras has detected empty settings. If this is unexpected, ask for assitance on https://discord.gg/M33kAuras."])
+          prettyPrint(L["M33kAuras has detected empty settings. If this is unexpected, please report it on GitHub."])
         end)
       end
     end

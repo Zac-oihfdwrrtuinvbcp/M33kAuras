@@ -67,9 +67,6 @@ L["25 Player Raid (Normal)"] = "25人团队副本（普通）"
 L["40 Man Raid"] = "40人团队"
 L["40 Player Raid"] = "40人团队副本"
 L["5 Man Dungeon"] = "5人地下城"
-L[ [=[A detailed overview of your auras and M33kAuras systems
-Copy the whole text to Weakaura's Discord if you need assistance.]=] ] = [=[一个包括你的光环和M33kAuras系统的详细信息。
-如果你需要帮助，复制整个文本到M33kAuras Discord。]=]
 L["A trigger in this aura is set up to track a soft target unit, but you don't have the CVars set up for this to work correctly. Consider either changing the unit tracked, or configuring the Soft Target CVars."] = "此光环的触发器追踪了软目标单位，但是你还未启用软目标CVar。考虑更改追踪的单位，或启用软目标CVar。"
 L["Abbreviate"] = "缩写"
 L["AbbreviateLargeNumbers (Blizzard)"] = "缩写大数字（暴雪）"
@@ -659,7 +656,6 @@ L["Icon Function"] = "图标函数"
 L["Icon Function (fallback state)"] = "图标函数（后备状态）"
 L["Id"] = "ID"
 L["ID"] = "ID"
-L["If you require additional assistance, please open a ticket on GitHub or visit our Discord at https://discord.gg/M33kAuras!"] = "如果你需要进一步的协助，请在 GitHub 上提交工单或是访问我们的 Discord：https://discord.gg/M33kAuras！"
 L["Ignore Dead"] = "忽略已死亡"
 L["Ignore Disconnected"] = "忽略已离线"
 L["Ignore out of checking range"] = "忽略超出检查范围"
@@ -1392,7 +1388,6 @@ L["This aura plays a sound via a condition."] = "此光环通过条件播放声�
 L["This aura plays a sound via an action."] = "此光环通过动作播放声音。"
 L["This aura plays a Text To Speech via a condition."] = "此光环通过条件播放文字转语音。"
 L["This aura plays a Text To Speech via an action."] = "此光环通过动作播放文字转语音。"
-L["This filter has been moved to the Location trigger. Change your aura to use the new Location trigger or join the M33kAuras Discord server for help."] = "此过滤器已经被移动到位置过滤器。修改你的光环以使用新的位置过滤器，或者加入M33kAuras Discord寻求帮助。"
 L["Threat Percent"] = "仇恨百分比"
 L["Threat Situation"] = "仇恨状况"
 L["Threat Value"] = "仇恨值"
@@ -1517,7 +1512,6 @@ L["Warning: Full Scan auras checking for both name and spell id can't be convert
 L["Warning: Name info is now available via %affected, %unaffected. Number of affected group members via %unitCount. Some options behave differently now. This is not automatically adjusted."] = "警告：现在名称信息通过 %affected, %unaffected，受影响的团队成员数量通过 %unitCount 提供。一些选项的工作方式发生了变化，且不会自动进行调整。"
 L["Warning: Tooltip values are now available via %tooltip1, %tooltip2, %tooltip3 instead of %s. This is not automatically adjusted."] = "警告：鼠标提示值现在将通过 %tooltip1, %tooltip2, %tooltip3 显示（取代通过 %s ）。这些变化将不会自动调整。"
 L["M33kAuras Built-In (63:42 | 3:07 | 10 | 2.4)"] = "M33kAuras内置格式 （63:42 | 3:07 | 10 | 2.4）"
-L["M33kAuras has detected empty settings. If this is unexpected, ask for assitance on https://discord.gg/M33kAuras."] = "M33kAuras 检测到了空的设置。如果这是意外情况，请在 https://discord.gg/M33kAuras 上寻求帮助。"
 L[ [=[M33kAuras has detected that it has been downgraded.
 Your saved auras may no longer work properly.
 Would you like to run the |cffff0000EXPERIMENTAL|r repair tool? This will overwrite any changes you have made since the last database upgrade.

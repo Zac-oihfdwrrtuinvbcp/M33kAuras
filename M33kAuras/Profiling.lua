@@ -386,7 +386,6 @@ function M33kAuras.PrintProfile()
 
   popup:AddText("")
   popup:AddText("Note: Not every aspect of each aura can be tracked.")
-  popup:AddText("You can ask on our discord https://discord.gg/M33kAuras for help interpreting this output.")
 
   popup:AddText("")
   popup:AddText("|cff9900ffAuras:|r")
@@ -492,7 +491,7 @@ function M33kAurasProfilingMixin:OnShow()
   UIDropDownMenu_SetText(self.buttons.modeDropDown, modes[1])
 
   self.buttons.report:SetText(L["Report Summary"])
-  self.buttons.report.tooltip = L["A detailed overview of your auras and M33kAuras systems\nCopy the whole text to Weakaura's Discord if you need assistance."]
+  self.buttons.report.tooltip = L["A detailed overview of your auras and M33kAuras systems."]
 
   local minimizeButton = CreateFrame("Button", nil, self, "MaximizeMinimizeButtonFrameTemplate")
   minimizeButton:SetPoint("RIGHT", self.CloseButton, "LEFT")

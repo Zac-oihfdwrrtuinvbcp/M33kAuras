@@ -95,9 +95,6 @@ L["40 Man Raid"] = "Raide de 40 jogadores"
 L["40 Player Raid"] = "40 Player Raid"
 L["5 Man Dungeon"] = "Masmorra de 5 jogadores"
 --[[Translation missing --]]
-L[ [=[A detailed overview of your auras and M33kAuras systems
-Copy the whole text to Weakaura's Discord if you need assistance.]=] ] = [=[A detailed overview of your auras and M33kAuras systems
-Copy the whole text to Weakaura's Discord if you need assistance.]=]
 --[[Translation missing --]]
 L["A trigger in this aura is set up to track a soft target unit, but you don't have the CVars set up for this to work correctly. Consider either changing the unit tracked, or configuring the Soft Target CVars."] = "A trigger in this aura is set up to track a soft target unit, but you don't have the CVars set up for this to work correctly. Consider either changing the unit tracked, or configuring the Soft Target CVars."
 L["Abbreviate"] = "Abreviar"
@@ -1092,7 +1089,6 @@ L["Id"] = "Id"
 --[[Translation missing --]]
 L["ID"] = "ID"
 --[[Translation missing --]]
-L["If you require additional assistance, please open a ticket on GitHub or visit our Discord at https://discord.gg/M33kAuras!"] = "If you require additional assistance, please open a ticket on GitHub or visit our Discord at https://discord.gg/M33kAuras!"
 --[[Translation missing --]]
 L["Ignore Dead"] = "Ignore Dead"
 --[[Translation missing --]]
@@ -2357,7 +2353,6 @@ L["This aura plays a Text To Speech via a condition."] = "This aura plays a Text
 --[[Translation missing --]]
 L["This aura plays a Text To Speech via an action."] = "This aura plays a Text To Speech via an action."
 --[[Translation missing --]]
-L["This filter has been moved to the Location trigger. Change your aura to use the new Location trigger or join the M33kAuras Discord server for help."] = "This filter has been moved to the Location trigger. Change your aura to use the new Location trigger or join the M33kAuras Discord server for help."
 --[[Translation missing --]]
 L["Threat Percent"] = "Threat Percent"
 L["Threat Situation"] = "Situação de ameaça"
@@ -2586,7 +2581,6 @@ L["Warning: Tooltip values are now available via %tooltip1, %tooltip2, %tooltip3
 --[[Translation missing --]]
 L["M33kAuras Built-In (63:42 | 3:07 | 10 | 2.4)"] = "M33kAuras Built-In (63:42 | 3:07 | 10 | 2.4)"
 --[[Translation missing --]]
-L["M33kAuras has detected empty settings. If this is unexpected, ask for assitance on https://discord.gg/M33kAuras."] = "M33kAuras has detected empty settings. If this is unexpected, ask for assitance on https://discord.gg/M33kAuras."
 --[[Translation missing --]]
 L[ [=[M33kAuras has detected that it has been downgraded.
 Your saved auras may no longer work properly.

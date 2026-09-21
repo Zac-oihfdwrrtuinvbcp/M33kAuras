@@ -58,8 +58,6 @@ L["25 Player Raid (Normal)"] = "Banda de 25 jugadores (normal)"
 L["40 Man Raid"] = "Banda de 40 jugadores"
 L["40 Player Raid"] = "Banda de 40 jugadores"
 L["5 Man Dungeon"] = "Mazmorra de 5 jugadores"
-L[ [=[A detailed overview of your auras and M33kAuras systems
-Copy the whole text to Weakaura's Discord if you need assistance.]=] ] = "Una descripción detallada de tus sistemas de auras y M33kAuras. Copia todo el texto en el Discord de WeakAura si necesitas ayuda."
 L["A trigger in this aura is set up to track a soft target unit, but you don't have the CVars set up for this to work correctly. Consider either changing the unit tracked, or configuring the Soft Target CVars."] = "Un activador de esta aura está configurado para rastrear una unidad de tipo soft target, pero no tienes configuradas las CVars para que esto funcione correctamente. Considera la posibilidad de cambiar la unidad rastreada o de configurar las CVars de soft target."
 L["Abbreviate"] = "Abreviar"
 L["AbbreviateLargeNumbers (Blizzard)"] = "AbreviarNúmerosGrandes (Blizzard)"
@@ -648,7 +646,6 @@ L["Icon Function"] = "Función de icono"
 L["Icon Function (fallback state)"] = "Función de icono (estado de reserva)"
 L["Id"] = "ID"
 L["ID"] = "ID"
-L["If you require additional assistance, please open a ticket on GitHub or visit our Discord at https://discord.gg/M33kAuras!"] = "Si necesitas más ayuda, abre un ticket en GitHub o visita nuestro Discord en https://discord.gg/M33kAuras."
 L["Ignore Dead"] = "Ignorar muertos"
 L["Ignore Disconnected"] = "Ignorar desconectados"
 L["Ignore out of checking range"] = "Ignorar fuera de rango de comprobación"
@@ -1343,7 +1340,6 @@ L["This aura plays a sound via a condition."] = "Este aura reproduce un sonido a
 L["This aura plays a sound via an action."] = "Este aura reproduce un sonido a través de una acción."
 L["This aura plays a Text To Speech via a condition."] = "Esta aura reproduce un texto a voz a través de una condición."
 L["This aura plays a Text To Speech via an action."] = "Esta aura reproduce un texto a voz a través de una acción."
-L["This filter has been moved to the Location trigger. Change your aura to use the new Location trigger or join the M33kAuras Discord server for help."] = "Este filtro ha sido trasladado al disparador de ubicación. Cambia tu aura para utilizar el nuevo disparador de ubicación o únete al servidor de Discord de M33kAuras para obtener ayuda."
 L["Threat Percent"] = "Porcentaje de amenaza"
 L["Threat Situation"] = "Situación de la Amenaza"
 L["Threat Value"] = "Valor de amenaza"
@@ -1471,7 +1467,6 @@ L["Warning: Name info is now available via %affected, %unaffected. Number of aff
 L["Warning: Tooltip values are now available via %tooltip1, %tooltip2, %tooltip3 instead of %s. This is not automatically adjusted."] = [=[Aviso: Los valores de tooltip ahora están disponibles a través de %tooltip1, %tooltip2, %tooltip3 en lugar de %s. Esto no se ajusta automáticamente.
 ​]=]
 L["M33kAuras Built-In (63:42 | 3:07 | 10 | 2.4)"] = "M33kAuras incorporado (63:42 | 3:07 | 10 | 2.4)"
-L["M33kAuras has detected empty settings. If this is unexpected, ask for assitance on https://discord.gg/M33kAuras."] = "M33kAuras ha detectado configuraciones vacías. Si esto es inesperado, solicita asistencia en https://discord.gg/M33kAuras."
 L[ [=[M33kAuras has detected that it has been downgraded.
 Your saved auras may no longer work properly.
 Would you like to run the |cffff0000EXPERIMENTAL|r repair tool? This will overwrite any changes you have made since the last database upgrade.

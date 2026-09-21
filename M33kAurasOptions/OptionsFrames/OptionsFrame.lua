@@ -416,7 +416,7 @@ function OptionsPrivate.CreateFrame()
   tipPopupCtrlC:SetJustifyV("TOP")
   tipPopupCtrlC:SetText(L["Press Ctrl+C to copy the URL"])
 
-  --- @type fun(referenceWidget: frame, title: string, texture: string, url: string, description: string, descriptionCJ: string?, descriptionK: string?, rightAligned: boolean?, width: number?)
+  --- @type fun(referenceWidget: frame, title: string, texture: string, url: string?, description: string, descriptionCJ: string?, descriptionK: string?, rightAligned: boolean?, width: number?)
   local function ToggleTip(referenceWidget, url, title, description, descriptionCJ, descriptionK, rightAligned, width)
     width = width or 400
     if tipPopup:IsVisible() and urlWidget.text == url then
@@ -424,12 +424,18 @@ function OptionsPrivate.CreateFrame()
       return
     end
     urlWidget.text = url
-    urlWidget:SetText(url)
+    urlWidget:SetText(url or "")
+    urlWidget:SetShown(url ~= nil)
+    tipPopupCtrlC:SetShown(url ~= nil)
     tipPopupTitle:SetText(title)
     tipPopupLabel:SetText(description)
     tipPopupLabelCJ:SetText(descriptionCJ)
     tipPopupLabelK:SetText(descriptionK)
-    urlWidget:HighlightText()
+    if url then
+      urlWidget:HighlightText()
+    else
+      urlWidget:ClearFocus()
+    end
 
     tipPopup:ClearAllPoints();
     if rightAligned then
@@ -441,7 +447,7 @@ function OptionsPrivate.CreateFrame()
     tipPopup:SetWidth(width)
     tipPopup:Show()
     tipPopup:SetHeight(26 + tipPopupTitle:GetHeight() + tipPopupLabel:GetHeight() + tipPopupLabelCJ:GetHeight() + tipPopupLabelK:GetHeight()
-                       + urlWidget:GetHeight() + tipPopupCtrlC:GetHeight())
+                       + (url and (urlWidget:GetHeight() + tipPopupCtrlC:GetHeight()) or 0))
     -- This does somehow fix an issue where the first popup after a game restart doesn't show up.
     -- This isn't reproducable after a simple ui reload, so no idea what goes wrong, but with this line here,
     -- it seems to work.
@@ -452,7 +458,7 @@ function OptionsPrivate.CreateFrame()
 
   OptionsPrivate.ToggleTip = ToggleTip
 
-  --- @type fun(title: string, texture: string, url: string, description: string, descriptionCJ: string?, descriptionK: string?, rightAligned: boolean?, width: number?)
+  --- @type fun(title: string, texture: string, url: string?, description: string, descriptionCJ: string?, descriptionK: string?, rightAligned: boolean?, width: number?)
   local addFooter = function(title, texture, url, description, descriptionCJ, descriptionK, rightAligned, width)
     local button = AceGUI:Create("M33kAurasToolbarButton")
     button:SetSmallFont(true)
@@ -503,18 +509,13 @@ function OptionsPrivate.CreateFrame()
   local thanksListCJ = lineWrapDiscordList(OptionsPrivate.Private.DiscordListCJ)
   local thanksListK = lineWrapDiscordList(OptionsPrivate.Private.DiscordListK)
 
-  local discordButton = addFooter(L["Discord"], [[Interface\AddOns\M33kAuras\Media\Textures\discord.tga]], "https://discord.gg/M33kAuras",
-            L["Chat with M33kAuras experts on our Discord server."])
-  discordButton:SetParent(tipFrame)
-  discordButton:SetPoint("LEFT", tipFrame, "LEFT")
-
   local documentationButton = addFooter(L["Documentation"], [[Interface\AddOns\M33kAuras\Media\Textures\GitHub.tga]], "https://github.com/m33shoq/M33kAuras/wiki",
             L["Check out our wiki for a large collection of examples and snippets."])
   documentationButton:SetParent(tipFrame)
-  documentationButton:SetPoint("LEFT", discordButton, "RIGHT", footerSpacing, 0)
+  documentationButton:SetPoint("LEFT", tipFrame, "LEFT")
 
   local thanksButton = addFooter(L["Thanks"], [[Interface\AddOns\M33kAuras\Media\Textures\waheart.tga]],
-                                 "https://www.patreon.com/M33kAuras", thanksList, thanksListCJ, thanksListK, nil, 800)
+                                 nil, thanksList, thanksListCJ, thanksListK, nil, 800)
   thanksButton:SetParent(tipFrame)
   thanksButton:SetPoint("LEFT", documentationButton, "RIGHT", footerSpacing, 0)
 
@@ -541,14 +542,6 @@ function OptionsPrivate.CreateFrame()
             L["Browse Wago, the largest collection of auras."], nil, nil, true)
   wagoButton:SetParent(tipFrame)
   wagoButton:SetPoint("RIGHT", reportbugButton, "LEFT", -footerSpacing, 0)
-
-  local companionButton
-  if not OptionsPrivate.Private.CompanionData.slugs then
-    companionButton = addFooter(L["Update Auras"], [[Interface\AddOns\M33kAuras\Media\Textures\wagoupdate_refresh.tga]], "https://M33kAuras.wtf",
-            L["Keep your Wago imports up to date with the Companion App."])
-    companionButton:SetParent(tipFrame)
-    companionButton:SetPoint("RIGHT", wagoButton, "LEFT", -footerSpacing, 0)
-  end
 
   frame.ShowTip = function(self)
     self.tipFrame:Show()

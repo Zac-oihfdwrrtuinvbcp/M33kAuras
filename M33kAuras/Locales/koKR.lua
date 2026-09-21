@@ -70,9 +70,6 @@ L["25 Player Raid (Normal)"] = "25인 공격대 (일반)"
 L["40 Man Raid"] = "40인 공격대"
 L["40 Player Raid"] = "40인 공격대"
 L["5 Man Dungeon"] = "5인 던전"
-L[ [=[A detailed overview of your auras and M33kAuras systems
-Copy the whole text to Weakaura's Discord if you need assistance.]=] ] = [=[당신의 위크오라와 M33kAuras 시스템 전반에 대한 상세 정보입니다
-도움이 필요하다면 이 텍스트를 모두 복사해서 WeakAura의 Discord로 가져오세요.]=]
 L["A trigger in this aura is set up to track a soft target unit, but you don't have the CVars set up for this to work correctly. Consider either changing the unit tracked, or configuring the Soft Target CVars."] = "이 위크오라의 활성 조건은 액션 전투 유닛을 추적하도록 설정되어 있으나 CVar 설정이 제대로 작동하도록 되어있지 않습니다. 추적할 유닛을 바꾸거나 액션 전투 관련 CVar를 설정해야 합니다."
 L["Abbreviate"] = "글자 수 줄임"
 L["AbbreviateLargeNumbers (Blizzard)"] = "큰 숫자 축약 (블리자드)"
@@ -664,7 +661,6 @@ L["Icon Function"] = "아이콘 함수"
 L["Icon Function (fallback state)"] = "Icon 함수 (고장 대체 상태)"
 L["Id"] = "ID"
 L["ID"] = "ID"
-L["If you require additional assistance, please open a ticket on GitHub or visit our Discord at https://discord.gg/M33kAuras!"] = "더 많은 도움이 필요하다면 GitHub에서 티켓을 열거나 저희 Discord (https://discord.gg/M33kAuras)를 방문해 주세요!"
 L["Ignore Dead"] = "죽음 무시"
 L["Ignore Disconnected"] = "오프라인 무시"
 L["Ignore out of checking range"] = "거리 검사가 안되면 무시"
@@ -1393,7 +1389,6 @@ L["This aura plays a sound via a condition."] = "이 위크오라는 조건 탭 
 L["This aura plays a sound via an action."] = "이 위크오라는 동작 탭 설정으로 소리를 재생합니다."
 L["This aura plays a Text To Speech via a condition."] = "이 위크오라는 조건 탭 설정으로 텍스트 음성 변환을 재생합니다."
 L["This aura plays a Text To Speech via an action."] = "이 위크오라는 동작 탭 설정으로 텍스트 음성 변환을 재생합니다."
-L["This filter has been moved to the Location trigger. Change your aura to use the new Location trigger or join the M33kAuras Discord server for help."] = "이 필터는 위치 활성 조건으로 이전됐습니다. 새로운 위치 활성 조건을 사용하려면 위크오라를 수정하시고 잘 모르겠으면 M33kAuras Discord 서버에 접속해서 도움을 요청하세요."
 L["Threat Percent"] = "위협 수준 백분율"
 L["Threat Situation"] = "위협 수준 상황"
 L["Threat Value"] = "위협 수준 수치"
@@ -1518,7 +1513,6 @@ L["Warning: Full Scan auras checking for both name and spell id can't be convert
 L["Warning: Name info is now available via %affected, %unaffected. Number of affected group members via %unitCount. Some options behave differently now. This is not automatically adjusted."] = "경고: 이제부터 %affected, %unaffected를 통해 이름 정보를 사용할 수 있습니다. 오라에 걸린 그룹원 수는 %unitCount를 사용합니다. 일부 옵션이 지금부터 다르게 작용합니다. 이것은 자동으로 조정되지 않습니다."
 L["Warning: Tooltip values are now available via %tooltip1, %tooltip2, %tooltip3 instead of %s. This is not automatically adjusted."] = "경고: 툴팁 값은 이제 %s 대신 %tooltip1, %tooltip2, %tooltip3으로 사용할 수 있습니다. 이것은 자동으로 조정되지 않습니다."
 L["M33kAuras Built-In (63:42 | 3:07 | 10 | 2.4)"] = "M33kAuras 내장 (63:42 | 3:07 | 10 | 2.4)"
-L["M33kAuras has detected empty settings. If this is unexpected, ask for assitance on https://discord.gg/M33kAuras."] = "M33kAuras가 빈 설정을 감지했습니다. 갑자기 발생한 것이라면 https://discord.gg/M33kAuras에서 도움을 요청하세요."
 L[ [=[M33kAuras has detected that it has been downgraded.
 Your saved auras may no longer work properly.
 Would you like to run the |cffff0000EXPERIMENTAL|r repair tool? This will overwrite any changes you have made since the last database upgrade.

@@ -1,6 +1,10 @@
 local L = M33kAuras.L
 
 -- M33kAuras
+L["If you require additional assistance, please open a ticket on GitHub."] = "If you require additional assistance, please open a ticket on GitHub."
+L["M33kAuras has detected empty settings. If this is unexpected, please report it on GitHub."] = "M33kAuras has detected empty settings. If this is unexpected, please report it on GitHub."
+L["This filter has been moved to the Location trigger. Change your aura to use the new Location trigger."] = "This filter has been moved to the Location trigger. Change your aura to use the new Location trigger."
+L["A detailed overview of your auras and M33kAuras systems."] = "A detailed overview of your auras and M33kAuras systems."
 L["Game Mode"] = "Game Mode"
 L["PvE"] = "PvE"
 L["PvP"] = "PvP"
@@ -70,9 +74,6 @@ L["25 Player Raid (Normal)"] = "25 Player Raid (Normal)"
 L["40 Man Raid"] = "40 Man Raid"
 L["40 Player Raid"] = "40 Player Raid"
 L["5 Man Dungeon"] = "5 Man Dungeon"
-L[ [=[A detailed overview of your auras and M33kAuras systems
-Copy the whole text to Weakaura's Discord if you need assistance.]=] ] = [=[A detailed overview of your auras and M33kAuras systems
-Copy the whole text to Weakaura's Discord if you need assistance.]=]
 L["A trigger in this aura is set up to track a soft target unit, but you don't have the CVars set up for this to work correctly. Consider either changing the unit tracked, or configuring the Soft Target CVars."] = "A trigger in this aura is set up to track a soft target unit, but you don't have the CVars set up for this to work correctly. Consider either changing the unit tracked, or configuring the Soft Target CVars."
 L["Abbreviate"] = "Abbreviate"
 L["AbbreviateLargeNumbers (Blizzard)"] = "AbbreviateLargeNumbers (Blizzard)"
@@ -669,7 +670,6 @@ L["Icon Function"] = "Icon Function"
 L["Icon Function (fallback state)"] = "Icon Function (fallback state)"
 L["Id"] = "Id"
 L["ID"] = "ID"
-L["If you require additional assistance, please open a ticket on GitHub or visit our Discord at https://discord.gg/M33kAuras!"] = "If you require additional assistance, please open a ticket on GitHub or visit our Discord at https://discord.gg/M33kAuras!"
 L["Ignore Dead"] = "Ignore Dead"
 L["Ignore Disconnected"] = "Ignore Disconnected"
 L["Ignore out of checking range"] = "Ignore out of checking range"
@@ -1407,7 +1407,6 @@ L["This aura plays a sound via a condition."] = "This aura plays a sound via a c
 L["This aura plays a sound via an action."] = "This aura plays a sound via an action."
 L["This aura plays a Text To Speech via a condition."] = "This aura plays a Text To Speech via a condition."
 L["This aura plays a Text To Speech via an action."] = "This aura plays a Text To Speech via an action."
-L["This filter has been moved to the Location trigger. Change your aura to use the new Location trigger or join the M33kAuras Discord server for help."] = "This filter has been moved to the Location trigger. Change your aura to use the new Location trigger or join the M33kAuras Discord server for help."
 L["Threat Percent"] = "Threat Percent"
 L["Threat Situation"] = "Threat Situation"
 L["Threat Value"] = "Threat Value"
@@ -1532,7 +1531,6 @@ L["Warning: Full Scan auras checking for both name and spell id can't be convert
 L["Warning: Name info is now available via %affected, %unaffected. Number of affected group members via %unitCount. Some options behave differently now. This is not automatically adjusted."] = "Warning: Name info is now available via %affected, %unaffected. Number of affected group members via %unitCount. Some options behave differently now. This is not automatically adjusted."
 L["Warning: Tooltip values are now available via %tooltip1, %tooltip2, %tooltip3 instead of %s. This is not automatically adjusted."] = "Warning: Tooltip values are now available via %tooltip1, %tooltip2, %tooltip3 instead of %s. This is not automatically adjusted."
 L["M33kAuras Built-In (63:42 | 3:07 | 10 | 2.4)"] = "M33kAuras Built-In (63:42 | 3:07 | 10 | 2.4)"
-L["M33kAuras has detected empty settings. If this is unexpected, ask for assitance on https://discord.gg/M33kAuras."] = "M33kAuras has detected empty settings. If this is unexpected, ask for assitance on https://discord.gg/M33kAuras."
 L[ [=[M33kAuras has detected that it has been downgraded.
 Your saved auras may no longer work properly.
 Would you like to run the |cffff0000EXPERIMENTAL|r repair tool? This will overwrite any changes you have made since the last database upgrade.
