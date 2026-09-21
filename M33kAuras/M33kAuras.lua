@@ -178,6 +178,21 @@ function M33kAuras.OpenOptions(msg)
   end
 end
 
+--- Open options, select an exact saved aura ID/name and center its display button.
+--- Available before options loads. Returns false with a reason when blocked; never queues.
+---@param id string
+---@return boolean success
+---@return string? reason
+function M33kAuras.OpenOptionsForAura(id)
+  if not M33kAuras.IsLoginFinished() then return false, "not-ready" end
+  if type(id) ~= "string" or not M33kAuras.GetData(id) then return false, "aura-not-found" end
+  if InCombatLockdown() then return false, "in-combat" end
+  if Private.NeedToRepairDatabase() then return false, "database-repair-required" end
+  if M33kAuras.IsImporting() or Private.IsOptionsProcessingPaused() then return false, "options-busy" end
+  if not Private.LoadOptions() then return false, "options-load-failed" end
+  return M33kAuras.ToggleOptions(nil, Private, id)
+end
+
 function Private.PrintHelp()
   print(L["Usage:"])
   print(L["/wa help - Show this message"])

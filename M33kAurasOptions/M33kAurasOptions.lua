@@ -463,10 +463,15 @@ local function OptionsFrame()
 end
 
 if not M33kAuras.ToggleOptions then
-  ---@type fun(msg: string, Private: Private)
-  function M33kAuras.ToggleOptions(msg, Private)
+  ---@type fun(msg: string?, Private: Private, auraId: string?): boolean?, string?
+  function M33kAuras.ToggleOptions(msg, Private, auraId)
     if not Private then
       return
+    end
+    -- Explicit navigation must not dismiss an editor or interrupt a tree mutation.
+    if auraId and (OptionsPrivate.massDelete or OptionsPrivate.movingAuras or OptionsPrivate.IsAuraDragging()
+      or (frame and frame.window ~= "default")) then
+      return false, "options-busy"
     end
     if not OptionsPrivate.Private then
       OptionsPrivate.Private = Private
@@ -495,7 +500,12 @@ if not M33kAuras.ToggleOptions then
       OptionsPrivate.Private.OpenUpdate = OptionsPrivate.OpenUpdate
     end
 
-    if(frame and frame:IsVisible()) then
+    if auraId then
+      if not M33kAuras.IsOptionsOpen() then M33kAuras.ShowOptions() end
+      OptionsPrivate.RevealDisplay(auraId, false, ScrollBoxConstants.AlignCenter)
+      frame:PickDisplay(auraId)
+      return true
+    elseif(frame and frame:IsVisible()) then
       M33kAuras.HideOptions();
     elseif (InCombatLockdown()) then
       M33kAuras.prettyPrint(L["Options will open after combat ends."])

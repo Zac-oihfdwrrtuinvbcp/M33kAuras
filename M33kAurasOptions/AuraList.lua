@@ -524,16 +524,16 @@ function OptionsPrivate.RefreshAuraList(filter)
     local request = pendingReveal
     local entry = model.byUID[request.uid]
     pendingReveal = nil
-    if entry then OptionsPrivate.RevealDisplay(entry.data.id, request.preserveFilter) end
+    if entry then OptionsPrivate.RevealDisplay(entry.data.id, request.preserveFilter, request.alignment) end
   end
 end
 
-function OptionsPrivate.RevealDisplay(id, preserveFilter)
+function OptionsPrivate.RevealDisplay(id, preserveFilter, alignment)
   local entry = OptionsPrivate.GetDisplayEntry(id)
   local frame = OptionsPrivate.Private.OptionsFrame()
   if not entry or not frame then return end
   if refreshing or OptionsPrivate.IsAuraListBusy() then
-    pendingReveal = {uid = entry.uid, preserveFilter = preserveFilter}
+    pendingReveal = {uid = entry.uid, preserveFilter = preserveFilter, alignment = alignment}
     frame.needsSort = true
     return
   end
@@ -558,10 +558,14 @@ function OptionsPrivate.RevealDisplay(id, preserveFilter)
   end
   OptionsPrivate.ScrollBox:ScrollToElementDataByPredicate(function(node)
     return node:GetData().entry == entry
-  end, ScrollBoxConstants.AlignNearest, 0, true)
+  end, alignment or ScrollBoxConstants.AlignNearest, 0, true)
 end
 
 local dragGhost, dragEntry
+function OptionsPrivate.IsAuraDragging()
+  return dragEntry ~= nil
+end
+
 function OptionsPrivate.StartAuraDrag(entry)
   if dragEntry then return end
   OptionsPrivate.CloseDisplayButtonMenu()

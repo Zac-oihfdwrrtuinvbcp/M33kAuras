@@ -19,6 +19,7 @@ local tests = {
   "aura_list_model_test.lua",
   "aura_list_ordering_test.lua",
   "display_menu_test.lua",
+  "options_navigation_test.lua",
   "animations_test.lua",
   "aura_environment_test.lua",
   "aura_environment_stack_test.lua",
