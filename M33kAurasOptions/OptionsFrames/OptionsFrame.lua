@@ -23,7 +23,7 @@ local SharedMedia = LibStub("LibSharedMedia-3.0")
 local M33kAuras = M33kAuras
 local L = M33kAuras.L
 
-local displayButtons = OptionsPrivate.displayButtons
+local displayEntries = OptionsPrivate.displayEntries
 local tempGroup = OptionsPrivate.tempGroup
 local aceOptions = {}
 
@@ -150,6 +150,7 @@ function OptionsPrivate.CreateFrame()
   frame:Hide()
 
   frame:SetScript("OnHide", function()
+    OptionsPrivate.DragReset()
     local suspended = OptionsPrivate.Private.PauseAllDynamicGroups()
 
     OptionsPrivate.Private.ClearFakeStates()
@@ -334,7 +335,7 @@ function OptionsPrivate.CreateFrame()
     frame:SetPoint("TOPRIGHT", UIParent, "BOTTOMLEFT", right, top)
     frame:SetHeight(odb.frame and odb.frame.height or defaultHeight)
     frame:SetWidth(odb.frame and odb.frame.width or defaultWidth)
-    frame.buttonsScroll:DoLayout()
+    OptionsPrivate.RequestAuraListRefresh()
     frame:UpdateFrameVisible()
   end)
   minimizebutton:SetOnMinimizedCallback(function()
@@ -578,9 +579,14 @@ function OptionsPrivate.CreateFrame()
 
   -- filter line
   local filterInput = CreateFrame("EditBox", "M33kAurasFilterInput", frame, "SearchBoxTemplate")
+  local lastFilterText = filterInput:GetText()
   filterInput:SetScript("OnTextChanged", function(self)
     SearchBoxTemplate_OnTextChanged(self)
-    OptionsPrivate.SortDisplayButtons(filterInput:GetText())
+    local text = self:GetText()
+    -- Resizing the EditBox also fires OnTextChanged with unchanged text.
+    if text == lastFilterText then return end
+    lastFilterText = text
+    OptionsPrivate.SortDisplayButtons(text)
   end)
   filterInput:SetHeight(15)
   filterInput:SetPoint("TOP", frame, "TOP", 0, -65)
@@ -734,59 +740,7 @@ function OptionsPrivate.CreateFrame()
     self:UpdateFrameVisible()
   end
 
-  local buttonsScroll = AceGUI:Create("ScrollFrame")
-  buttonsScroll:SetLayout("ButtonsScrollLayout")
-  buttonsScroll.width = "fill"
-  buttonsScroll.height = "fill"
-  buttonsContainer:SetLayout("fill")
-  buttonsContainer:AddChild(buttonsScroll)
-  buttonsScroll.DeleteChild = function(self, delete)
-    for index, widget in ipairs(buttonsScroll.children) do
-      if widget == delete then
-        tremove(buttonsScroll.children, index)
-      end
-    end
-    delete:OnRelease()
-    buttonsScroll:DoLayout()
-  end
-  frame.buttonsScroll = buttonsScroll
-
-  function buttonsScroll:GetScrollPos()
-    local status = self.status or self.localstatus
-    return status.offset, status.offset + self.scrollframe:GetHeight()
-  end
-
-  -- override SetScroll to make children visible as needed
-  local oldSetScroll = buttonsScroll.SetScroll
-  buttonsScroll.SetScroll = function(self, value)
-    oldSetScroll(self, value)
-    self.LayoutFunc(self.content, self.children, true)
-  end
-
-  function buttonsScroll:SetScrollPos(top, bottom)
-    local status = self.status or self.localstatus
-    local viewheight = self.scrollframe:GetHeight()
-    local height = self.content:GetHeight()
-    local move
-
-    local viewtop = -1 * status.offset
-    local viewbottom = -1 * (status.offset + viewheight)
-    if top > viewtop then
-      move = top - viewtop
-    elseif bottom < viewbottom then
-      move = bottom - viewbottom
-    else
-      move = 0
-    end
-
-    status.offset = status.offset - move
-
-    self.content:ClearAllPoints()
-    self.content:SetPoint("TOPLEFT", 0, status.offset)
-    self.content:SetPoint("TOPRIGHT", 0, status.offset)
-
-    status.scrollvalue = status.offset / ((height - viewheight) / 1000.0)
-  end
+  OptionsPrivate.CreateAuraList(buttonsContainer.content)
 
   -- Ready to Install section
   local pendingInstallButton = AceGUI:Create("M33kAurasLoadedHeaderButton")
@@ -855,27 +809,26 @@ function OptionsPrivate.CreateFrame()
   loadedButton:SetExpandDescription(L["Expand all loaded displays"])
   loadedButton:SetCollapseDescription(L["Collapse all loaded displays"])
   loadedButton:SetViewClick(function()
-    local suspended = OptionsPrivate.Private.PauseAllDynamicGroups()
-
-    if loadedButton.view.visibility == 2 then
-      for _, child in ipairs(loadedButton.childButtons) do
-        if child:IsLoaded() then
-          child:PriorityHide(2)
+    OptionsPrivate.WithSuspendedDynamicGroups(function()
+      if loadedButton.view.visibility == 2 then
+        for _, child in ipairs(loadedButton.childButtons) do
+          if child:IsLoaded() then
+            child:PriorityHide(2)
+          end
         end
-      end
-      loadedButton:PriorityHide(2)
-    else
-      for _, child in ipairs(loadedButton.childButtons) do
-        if child:IsLoaded() then
-          child:PriorityShow(2)
+        loadedButton:PriorityHide(2)
+      else
+        for _, child in ipairs(loadedButton.childButtons) do
+          if child:IsLoaded() then
+            child:PriorityShow(2)
+          end
         end
+        loadedButton:PriorityShow(2)
       end
-      loadedButton:PriorityShow(2)
-    end
-    OptionsPrivate.Private.ResumeAllDynamicGroups(suspended)
+    end)
   end)
   loadedButton.RecheckVisibility = function(self)
-    local none, all = true, true
+    local none, all = true, #self.childButtons > 0
     for _, child in ipairs(loadedButton.childButtons) do
       if child:GetVisibility() ~= 2 then
         all = false
@@ -922,22 +875,22 @@ function OptionsPrivate.CreateFrame()
   unloadedButton:SetExpandDescription(L["Expand all non-loaded displays"])
   unloadedButton:SetCollapseDescription(L["Collapse all non-loaded displays"])
   unloadedButton:SetViewClick(function()
-    local suspended = OptionsPrivate.Private.PauseAllDynamicGroups()
-    if unloadedButton.view.visibility == 2 then
-      for _, child in ipairs(unloadedButton.childButtons) do
-        child:PriorityHide(2)
+    OptionsPrivate.WithSuspendedDynamicGroups(function()
+      if unloadedButton.view.visibility == 2 then
+        for _, child in ipairs(unloadedButton.childButtons) do
+          child:PriorityHide(2)
+        end
+        unloadedButton:PriorityHide(2)
+      else
+        for _, child in ipairs(unloadedButton.childButtons) do
+          child:PriorityShow(2)
+        end
+        unloadedButton:PriorityShow(2)
       end
-      unloadedButton:PriorityHide(2)
-    else
-      for _, child in ipairs(unloadedButton.childButtons) do
-        child:PriorityShow(2)
-      end
-      unloadedButton:PriorityShow(2)
-    end
-    OptionsPrivate.Private.ResumeAllDynamicGroups(suspended)
+    end)
   end)
   unloadedButton.RecheckVisibility = function(self)
-    local none, all = true, true
+    local none, all = true, #self.childButtons > 0
     for _, child in ipairs(unloadedButton.childButtons) do
       if child:GetVisibility() ~= 2 then
         all = false
@@ -1237,6 +1190,7 @@ function OptionsPrivate.CreateFrame()
   end
 
   frame.ClearPick = function(self, id)
+    if self.pickedDisplay == id then self:ClearPicks(); return end
     local index = nil
     for i, childId in pairs(tempGroup.controlledChildren) do
       if childId == id then
@@ -1245,8 +1199,10 @@ function OptionsPrivate.CreateFrame()
       end
     end
 
+    if not index then return end
     tremove(tempGroup.controlledChildren, index)
-    displayButtons[id]:ClearPick()
+    displayEntries[id]:ClearPick()
+    if #tempGroup.controlledChildren == 0 then self:ClearPicks(); return end
 
     -- Clear trigger expand state
     OptionsPrivate.ClearTriggerExpandState()
@@ -1260,7 +1216,7 @@ function OptionsPrivate.CreateFrame()
       frame.pickedDisplay = newid
     else
       for i, childId in pairs(tempGroup.controlledChildren) do
-        if (childId == newid) then
+        if (childId == oldid) then
           tempGroup.controlledChildren[i] = newid
         end
       end
@@ -1269,14 +1225,14 @@ function OptionsPrivate.CreateFrame()
 
   frame.ClearPicks = function(self, noHide)
     local suspended = OptionsPrivate.Private.PauseAllDynamicGroups()
-    for id, button in pairs(displayButtons) do
+    for id, button in pairs(displayEntries) do
       button:ClearPick(true)
       if not noHide then
         button:PriorityHide(1)
       end
     end
     if not noHide then
-      for id, button in pairs(displayButtons) do
+      for id, button in pairs(displayEntries) do
         if button.data.controlledChildren then
           button:RecheckVisibility()
         end
@@ -1324,7 +1280,7 @@ function OptionsPrivate.CreateFrame()
     end
 
     if targetId then
-      local pickedButton = OptionsPrivate.GetDisplayButton(targetId)
+      local pickedButton = OptionsPrivate.GetDisplayEntry(targetId)
       if pickedButton.data.controlledChildren then
         targetIsDynamicGroup = pickedButton.data.regionType == "dynamicgroup"
       else
@@ -1473,81 +1429,30 @@ function OptionsPrivate.CreateFrame()
     containerScroll:AddChild(importButton)
   end
 
-  local function ExpandParents(data)
-    if data.parent then
-      if not displayButtons[data.parent]:GetExpanded() then
-        displayButtons[data.parent]:Expand()
-      end
-      local parentData = M33kAuras.GetData(data.parent)
-      ExpandParents(parentData)
-    end
-  end
-
   frame.PickDisplay = function(self, id, tab, noHide)
     local data = M33kAuras.GetData(id)
-
-    -- Always expand even if already picked
-    ExpandParents(data)
-
-    if OptionsPrivate.Private.loaded[id] ~= nil then
-      -- Under loaded
-      if not loadedButton:GetExpanded() then
-        loadedButton:Expand()
-      end
-    else
-      -- Under Unloaded
-      if not unloadedButton:GetExpanded() then
-        unloadedButton:Expand()
-      end
-    end
-
-    if self.pickedDisplay == id and (self.pickedDisplay == tab or tab == nil) then
-      return
-    end
-
+    if not data then return end
+    local entry = OptionsPrivate.GetDisplayEntry(id)
+    if self.pickedDisplay == id and (self.selectedTab == tab or tab == nil) then return end
+    OptionsPrivate.RevealDisplay(id, true)
     local suspended = OptionsPrivate.Private.PauseAllDynamicGroups()
-
     self:ClearPicks(noHide)
-
-    displayButtons[id]:Pick()
+    entry:Pick()
     self.pickedDisplay = id
-
-
-    if tab then
-      self.selectedTab = tab
-    end
+    if tab then self.selectedTab = tab end
     self:FillOptions()
     M33kAuras.SetMoverSizer(id)
-
-    local _, _, _, _, yOffset = displayButtons[id].frame:GetPoint(1)
-    if not yOffset then
-      yOffset = displayButtons[id].frame.yOffset
-    end
-    if yOffset then
-      self.buttonsScroll:SetScrollPos(yOffset, yOffset - 32)
-    end
-
     for child in OptionsPrivate.Private.TraverseAllChildren(data) do
-      displayButtons[child.id]:PriorityShow(1)
+      OptionsPrivate.GetDisplayEntry(child.id):PriorityShow(1)
     end
-    displayButtons[data.id]:RecheckParentVisibility()
-
+    entry:RecheckParentVisibility()
     OptionsPrivate.Private.ResumeAllDynamicGroups(suspended)
   end
 
   frame.CenterOnPicked = function(self)
     if self.pickedDisplay then
-      local centerId = type(self.pickedDisplay) == "string" and self.pickedDisplay or self.pickedDisplay.controlledChildren[1]
-
-      if displayButtons[centerId] then
-        local _, _, _, _, yOffset = displayButtons[centerId].frame:GetPoint(1)
-        if not yOffset then
-          yOffset = displayButtons[centerId].frame.yOffset
-        end
-        if yOffset then
-          self.buttonsScroll:SetScrollPos(yOffset, yOffset - 32)
-        end
-      end
+      local id = type(self.pickedDisplay) == "string" and self.pickedDisplay or self.pickedDisplay.controlledChildren[1]
+      if id then OptionsPrivate.RevealDisplay(id) end
     end
   end
 
@@ -1567,7 +1472,7 @@ function OptionsPrivate.CreateFrame()
         self:PickDisplay(id)
       elseif not OptionsPrivate.IsDisplayPicked(id) then
         self.pickedDisplay = tempGroup
-        displayButtons[id]:Pick()
+        displayEntries[id]:Pick()
         tinsert(tempGroup.controlledChildren, id)
         OptionsPrivate.ClearOptions(tempGroup.id)
         self:FillOptions()
@@ -1582,8 +1487,10 @@ function OptionsPrivate.CreateFrame()
     end
 
     for _, id in ipairs(batchSelection) do
-      if not alreadySelected[id] then
-        displayButtons[id]:Pick()
+      local entry = OptionsPrivate.GetDisplayEntry(id)
+      if entry and not alreadySelected[id] then
+        alreadySelected[id] = true
+        entry:Pick()
         tinsert(tempGroup.controlledChildren, id)
       end
     end

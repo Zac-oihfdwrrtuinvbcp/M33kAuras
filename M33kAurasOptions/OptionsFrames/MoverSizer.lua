@@ -697,7 +697,7 @@ AlignmentLines.CreateLineInformation = function(self, data, sizerPoint)
     skipIds[child.id] = true
   end
 
-  for id, v in pairs(OptionsPrivate.displayButtons) do
+  for id, v in pairs(OptionsPrivate.displayEntries) do
     local region = M33kAuras.GetRegion(v.data.id)
     if not skipIds[id]
        and v.view.visibility >= 1

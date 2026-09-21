@@ -9,6 +9,15 @@ io.stdout:setvbuf("no") -- keep the headers in order with the child output
 require("helpers") -- exits with a clear message on an unsupported Lua version
 
 local tests = {
+  "aura_list_test.lua",
+  "aura_list_review_test.lua",
+  "aura_list_async_test.lua",
+  "aura_list_editor_test.lua",
+  "aura_list_actions_test.lua",
+  "aura_list_thumbnail_test.lua",
+  "aura_list_interaction_test.lua",
+  "aura_list_model_test.lua",
+  "aura_list_ordering_test.lua",
   "animations_test.lua",
   "aura_environment_test.lua",
   "aura_environment_stack_test.lua",

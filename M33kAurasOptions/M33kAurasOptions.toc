@@ -59,6 +59,10 @@ InformationOptions.lua
 BuffTrigger2.lua
 GenericTrigger.lua
 
+AuraListModel.lua
+AuraList.lua
+AuraListThumbnail.lua
+DisplayEntryActions.lua
 M33kAurasOptions.lua
 ConditionOptions.lua
 AuthorOptions.lua

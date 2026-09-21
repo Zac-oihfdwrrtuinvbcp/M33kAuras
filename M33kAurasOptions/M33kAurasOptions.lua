@@ -23,8 +23,7 @@ local M33kAuras = M33kAuras
 local L = M33kAuras.L
 local ADDON_NAME = "M33kAurasOptions";
 
-local displayButtons = {};
-OptionsPrivate.displayButtons = displayButtons;
+local displayEntries = OptionsPrivate.displayEntries;
 
 local spellCache = M33kAuras.spellCache;
 local savedVars = {};
@@ -98,13 +97,13 @@ function OptionsPrivate.DuplicateAura(data, newParent, massEdit, targetIndex)
       OptionsPrivate.Private.AddParents(parentData)
 
       for index, id in pairs(parentData.controlledChildren) do
-        local childButton = OptionsPrivate.GetDisplayButton(id)
+        local childButton = OptionsPrivate.GetDisplayEntry(id)
         childButton:SetGroup(parentData.id, parentData.regionType == "dynamicgroup")
         childButton:SetGroupOrder(index, #parentData.controlledChildren)
       end
 
       if not massEdit then
-        local button = OptionsPrivate.GetDisplayButton(parentData.id)
+        local button = OptionsPrivate.GetDisplayEntry(parentData.id)
         button.callbacks.UpdateExpandButton()
         button:UpdateParentWarning()
       end
@@ -137,38 +136,6 @@ AceGUI:RegisterLayout("AbsoluteList", function(content, children)
     content.obj:LayoutFinished(nil, yOffset * -1);
   end
 end);
-
-AceGUI:RegisterLayout("ButtonsScrollLayout", function(content, children, skipLayoutFinished)
-  local yOffset = 0
-  local scrollTop, scrollBottom = content.obj:GetScrollPos()
-  for i = 1, #children do
-    local child = children[i]
-    local frame = child.frame;
-
-    if not child.dragging then
-      local frameHeight = (frame.height or frame:GetHeight() or 0);
-      frame:ClearAllPoints();
-      if (-yOffset + frameHeight > scrollTop and -yOffset - frameHeight < scrollBottom) then
-        frame:Show();
-        frame:SetPoint("LEFT", content);
-        frame:SetPoint("RIGHT", content);
-        frame:SetPoint("TOP", content, "TOP", 0, yOffset)
-      else
-        frame:Hide();
-        frame.yOffset = yOffset
-      end
-      yOffset = yOffset - (frameHeight + 2);
-    end
-
-    if child.DoLayout then
-      child:DoLayout()
-    end
-
-  end
-  if(content.obj.LayoutFinished and not skipLayoutFinished) then
-    content.obj:LayoutFinished(nil, yOffset * -1)
-  end
-end)
 
 function OptionsPrivate.MultipleDisplayTooltipDesc()
   local desc = {{L["Multiple Displays"], L["Temporary Group"]}};
@@ -250,13 +217,12 @@ local function commonParent(controlledChildren)
   local targetIndex = math.huge
   for index, id in ipairs(controlledChildren) do
     local childData = M33kAuras.GetData(id);
-    local childButton = OptionsPrivate.GetDisplayButton(id)
+    local childButton = OptionsPrivate.GetDisplayEntry(id)
     targetIndex = min(targetIndex, childButton:GetGroupOrder() or math.huge)
 
-    if (parent == nil) then
+    -- nil is a real parent value (top level), not an uninitialized sentinel.
+    if index == 1 then
       parent = childData.parent
-    elseif not childData.parent then
-      allSame = false
     elseif childData.parent ~= parent then
       allSame = false
     end
@@ -289,7 +255,7 @@ local function CreateNewGroupFromSelection(regionType, resetChildPositions)
     M33kAuras.UpdateGroupOrders(parentData);
     OptionsPrivate.ClearOptions(parentData.id);
 
-    local parentButton = OptionsPrivate.GetDisplayButton(parent)
+    local parentButton = OptionsPrivate.GetDisplayEntry(parent)
     parentButton.callbacks.UpdateExpandButton();
     parentButton:Expand();
     parentButton:ReloadTooltip();
@@ -301,7 +267,7 @@ local function CreateNewGroupFromSelection(regionType, resetChildPositions)
 
   for index, childId in pairs(tempGroup.controlledChildren) do
     local childData = M33kAuras.GetData(childId);
-    local childButton = OptionsPrivate.GetDisplayButton(childId)
+    local childButton = OptionsPrivate.GetDisplayEntry(childId)
     local oldParent = childData.parent
     local oldParentData = M33kAuras.GetData(oldParent)
     if (oldParent) then
@@ -312,7 +278,7 @@ local function CreateNewGroupFromSelection(regionType, resetChildPositions)
       OptionsPrivate.Private.AddParents(oldParentData)
       M33kAuras.UpdateGroupOrders(oldParentData);
       M33kAuras.ClearAndUpdateOptions(oldParent);
-      local oldParentButton = OptionsPrivate.GetDisplayButton(oldParent)
+      local oldParentButton = OptionsPrivate.GetDisplayEntry(oldParent)
       oldParentButton.callbacks.UpdateExpandButton();
       oldParentButton:ReloadTooltip()
       oldParentButton:UpdateParentWarning()
@@ -332,7 +298,7 @@ local function CreateNewGroupFromSelection(regionType, resetChildPositions)
     childButton:SetGroupOrder(index, #data.controlledChildren);
   end
 
-  local button = OptionsPrivate.GetDisplayButton(data.id);
+  local button = OptionsPrivate.GetDisplayEntry(data.id);
   button.callbacks.UpdateExpandButton();
   button:UpdateParentWarning()
   OptionsPrivate.SortDisplayButtons();
@@ -495,7 +461,7 @@ end
 local function AfterScanForLoads()
   if(frame) then
     if (frame:IsVisible()) then
-      OptionsPrivate.SortDisplayButtons(nil, true);
+      OptionsPrivate.RequestAuraListRefresh()
     else
       frame.needsSort = true;
     end
@@ -506,7 +472,7 @@ local function OnAboutToDelete(event, uid, id, parentUid, parentId)
   local data = OptionsPrivate.Private.GetDataByUID(uid)
   if(data.controlledChildren) then
     for index, childId in pairs(data.controlledChildren) do
-      local childButton = displayButtons[childId];
+      local childButton = displayEntries[childId];
       if(childButton) then
         childButton:SetGroup();
       end
@@ -522,9 +488,10 @@ local function OnAboutToDelete(event, uid, id, parentUid, parentId)
 
   frame:ClearPicks();
 
-  if(displayButtons[id])then
-    frame.buttonsScroll:DeleteChild(displayButtons[id]);
-    displayButtons[id] = nil;
+  if(displayEntries[id])then
+    OptionsPrivate.auraListModel:Remove(uid)
+    OptionsPrivate.RequestAuraListRefresh()
+    displayEntries[id] = nil;
   end
 
   collapsedOptions[id] = nil
@@ -533,28 +500,30 @@ end
 local function OnRename(event, uid, oldid, newid)
   local data = OptionsPrivate.Private.GetDataByUID(uid)
 
-  OptionsPrivate.displayButtons[newid] = OptionsPrivate.displayButtons[oldid];
-  OptionsPrivate.displayButtons[newid]:SetData(data)
-  OptionsPrivate.displayButtons[oldid] = nil;
+  if not data then return end
+  local entry = OptionsPrivate.auraListModel:Ensure(data)
+  frame:OnRename(uid, oldid, newid)
+  entry:SetData(data)
   OptionsPrivate.ClearOptions(oldid)
 
-  OptionsPrivate.displayButtons[newid]:SetTitle(newid);
+  OptionsPrivate.displayEntries[newid]:SetTitle(newid);
 
   collapsedOptions[newid] = collapsedOptions[oldid]
   collapsedOptions[oldid] = nil
 
   if(data.controlledChildren) then
     for _, childId in pairs(data.controlledChildren) do
-      OptionsPrivate.displayButtons[childId]:SetGroup(newid)
+      local child = OptionsPrivate.GetDisplayEntry(childId)
+      if child then child:SetGroup(newid) end
     end
   end
 
   OptionsPrivate.StopGrouping()
   OptionsPrivate.SortDisplayButtons(nil, true)
 
-  frame:OnRename(uid, oldid, newid)
-
-  M33kAuras.PickDisplay(newid)
+  if not M33kAuras.IsImporting() then
+    if OptionsPrivate.IsPickedMultiple() then frame:FillOptions() else M33kAuras.PickDisplay(newid) end
+  end
 
   local parent = data.parent
   while parent do
@@ -586,13 +555,13 @@ if not M33kAuras.ToggleOptions then
       end
       OptionsPrivate.Private.callbacks:RegisterCallback("AuraWarningsUpdated", function(event, uid)
         local id = OptionsPrivate.Private.UIDtoID(uid)
-        if displayButtons[id] then
+        if displayEntries[id] then
           -- The button does not yet exists if a new aura is created
-          displayButtons[id]:UpdateWarning()
+          displayEntries[id]:UpdateWarning()
         end
         local data = Private.GetDataByUID(uid)
         if data and data.parent then
-          local button = OptionsPrivate.GetDisplayButton(data.parent);
+          local button = OptionsPrivate.GetDisplayEntry(data.parent);
           if button then
             button:UpdateParentWarning()
           end
@@ -630,173 +599,63 @@ function M33kAuras.IsOptionsOpen()
   end
 end
 
-local function EnsureDisplayButton(data)
-  local id = data.id;
-  if not(displayButtons[id]) then
-    displayButtons[id] = AceGUI:Create("M33kAurasDisplayButton");
-    if(displayButtons[id]) then
-      displayButtons[id]:SetData(data);
-      displayButtons[id]:Initialize();
-      displayButtons[id]:UpdateWarning()
-    else
-      print("|cFF8800FFM33kAuras|r: Error creating button for", id);
-    end
-  end
-end
-
-local function GetSortedOptionsLists()
-  local loadedSorted, unloadedSorted = {}, {};
-  local to_sort = {};
-  for id, data in pairs(db.displays) do
-    if(data.parent) then
-    -- Do nothing; children will be added later
-  elseif(OptionsPrivate.Private.loaded[id]) then
-      tinsert(to_sort, id);
-    end
-  end
-  table.sort(to_sort, function(a, b) return a:lower() < b:lower() end)
-  for _, id in ipairs(to_sort) do
-    local data = M33kAuras.GetData(id);
-    for child in OptionsPrivate.Private.TraverseAll(data) do
-      tinsert(loadedSorted, child.id)
-    end
-  end
-
-  wipe(to_sort);
-  for id, data in pairs(db.displays) do
-    if(data.parent) then
-    -- Do nothing; children will be added later
-    elseif not(OptionsPrivate.Private.loaded[id]) then
-      tinsert(to_sort, id);
-    end
-  end
-  table.sort(to_sort, function(a, b) return a:lower() < b:lower() end)
-  for _, id in ipairs(to_sort) do
-    local data = M33kAuras.GetData(id);
-    for child in OptionsPrivate.Private.TraverseAll(data) do
-      tinsert(unloadedSorted, child.id)
-    end
-  end
-
-  return loadedSorted, unloadedSorted;
-end
-
 local function LayoutDisplayButtons(msg)
-  local total = 0;
-  for _,_ in pairs(db.displays) do
-    total = total + 1;
-  end
-
-  local loadedSorted, unloadedSorted = GetSortedOptionsLists();
-
-  frame:SetLoadProgressVisible(true)
-  if OptionsPrivate.Private.CompanionData.slugs then
-    frame.buttonsScroll:AddChild(frame.pendingInstallButton);
-    frame.buttonsScroll:AddChild(frame.pendingUpdateButton);
-  end
-  frame.buttonsScroll:AddChild(frame.loadedButton);
-  frame.buttonsScroll:AddChild(frame.unloadedButton);
-
-  local func2 = function()
-    local num = frame.loadProgressNum or 0;
-    for _, id in pairs(unloadedSorted) do
-      local data = M33kAuras.GetData(id);
-      if(data) then
-        EnsureDisplayButton(data);
-        M33kAuras.UpdateThumbnail(data);
-
-        frame.buttonsScroll:AddChild(displayButtons[data.id]);
-
-        if (num % 50 == 0) then
-          frame.buttonsScroll:ResumeLayout()
-          frame.buttonsScroll:PerformLayout()
-          frame.buttonsScroll:PauseLayout()
-        end
-
-        num = num + 1;
+  OptionsPrivate.SortDisplayButtons(msg)
+  frame:SetLoadProgressVisible(false)
+  local suspended
+  OptionsPrivate.Private:Async({name = "AuraListPreviews"}, function()
+    suspended = OptionsPrivate.Private.PauseAllDynamicGroups()
+    local entries = {}
+    for _, entry in pairs(displayEntries) do entries[#entries + 1] = entry end
+    for _, entry in ipairs(entries) do
+      if not M33kAuras.IsOptionsOpen() then break end
+      if OptionsPrivate.auraListModel.byUID[entry.uid] == entry and OptionsPrivate.Private.loaded[entry.data.id] then
+        entry:PriorityShow(1)
       end
-      frame.loadProgress:SetText(L["Creating buttons: "]..num.."/"..total);
-      frame.loadProgressNum = num;
-      coroutine.yield();
-    end
-
-    frame.buttonsScroll:ResumeLayout()
-    frame.buttonsScroll:PerformLayout()
-    OptionsPrivate.SortDisplayButtons(msg);
-
-    local suspended = OptionsPrivate.Private.PauseAllDynamicGroups()
-    if (M33kAuras.IsOptionsOpen()) then
-      for id, button in pairs(displayButtons) do
-        if OptionsPrivate.Private.loaded[id] then
-          coroutine.yield();
-          button:PriorityShow(1);
-          coroutine.yield()
-        end
-      end
-      OptionsPrivate.Private.OptionsFrame().loadedButton:RecheckVisibility()
       coroutine.yield()
     end
-    OptionsPrivate.Private.ResumeAllDynamicGroups(suspended)
-
-    frame:SetLoadProgressVisible(false)
-  end
-
-  local func1 = function()
-    local num = frame.loadProgressNum or 0;
-    frame.buttonsScroll:PauseLayout()
-    for _, id in pairs(loadedSorted) do
-      local data = M33kAuras.GetData(id);
-      if(data) then
-        EnsureDisplayButton(data);
-        M33kAuras.UpdateThumbnail(data);
-
-        local button = displayButtons[data.id]
-        frame.buttonsScroll:AddChild(button);
-        num = num + 1;
-      end
-
-      if (num % 50 == 0) then
-        frame.buttonsScroll:ResumeLayout()
-        frame.buttonsScroll:PerformLayout()
-        frame.buttonsScroll:PauseLayout()
-      end
-
-      frame.loadProgress:SetText(L["Creating buttons: "]..num.."/"..total);
-      frame.loadProgressNum = num;
-      coroutine.yield();
-    end
-
-   OptionsPrivate.Private:Async({name = "LayoutDisplayButtons2"}, func2)
-  end
-
-  OptionsPrivate.Private:Async({name = "LayoutDisplayButtons1"}, func1)
+    OptionsPrivate.RefreshAuraPreviews()
+  end):Finally(function()
+    if suspended then OptionsPrivate.Private.ResumeAllDynamicGroups(suspended) end
+  end)
 end
 
+local pendingDeletions = 0
 function OptionsPrivate.DeleteAuras(auras, parents)
+  -- Snapshot UIDs: names and data tables may change while deletion is queued.
+  local uids, seen, parentUIDs = {}, {}, {}
+  for _, data in ipairs(auras) do
+    if not seen[data.uid] then
+      seen[data.uid] = true
+      uids[#uids + 1] = data.uid
+    end
+  end
+  for id in pairs(parents or {}) do
+    local data = M33kAuras.GetData(id)
+    if data then parentUIDs[#parentUIDs + 1] = data.uid end
+  end
+  pendingDeletions = pendingDeletions + 1
+  OptionsPrivate.massDelete = true
+  local suspended
   local func1 = function()
     frame:SetLoadProgressVisible(true)
     local num = 0
-    local total = 0
-    for _, auraData in pairs(auras) do
-      total = total +1
-    end
+    local total = #uids
 
     frame.loadProgress:SetText(L["Deleting auras: "]..num.."/"..total)
 
-    local suspended = OptionsPrivate.Private.PauseAllDynamicGroups()
-    OptionsPrivate.massDelete = true
-    for _, auraData in pairs(auras) do
-      M33kAuras.Delete(auraData)
+    suspended = OptionsPrivate.Private.PauseAllDynamicGroups()
+    for _, uid in ipairs(uids) do
+      local auraData = OptionsPrivate.Private.GetDataByUID(uid)
+      if auraData then M33kAuras.Delete(auraData) end
       num = num +1
       frame.loadProgress:SetText(L["Deleting auras: "]..num.."/"..total)
       coroutine.yield()
     end
-    OptionsPrivate.massDelete = false
-
-    if parents then
-      for id in pairs(parents) do
-        local parentData = M33kAuras.GetData(id)
-        local parentButton = OptionsPrivate.GetDisplayButton(id)
+    for _, uid in ipairs(parentUIDs) do
+      local parentData = OptionsPrivate.Private.GetDataByUID(uid)
+      local parentButton = parentData and OptionsPrivate.GetDisplayEntry(parentData.id)
+      if parentData and parentButton then
         M33kAuras.UpdateGroupOrders(parentData)
         if(#parentData.controlledChildren == 0) then
           parentButton:DisableExpand()
@@ -811,13 +670,17 @@ function OptionsPrivate.DeleteAuras(auras, parents)
         coroutine.yield()
       end
     end
-    OptionsPrivate.Private.ResumeAllDynamicGroups(suspended)
-    OptionsPrivate.SortDisplayButtons(nil, true)
-
-    frame:SetLoadProgressVisible(false)
   end
 
-  OptionsPrivate.Private:Async({name = "Deleting Auras"}, func1)
+  OptionsPrivate.Private:Async({name = "Deleting Auras"}, func1):Finally(function()
+    pendingDeletions = pendingDeletions - 1
+    OptionsPrivate.massDelete = pendingDeletions > 0 or nil
+    if suspended then OptionsPrivate.Private.ResumeAllDynamicGroups(suspended) end
+    if pendingDeletions == 0 then
+      frame:SetLoadProgressVisible(false)
+      OptionsPrivate.SortDisplayButtons(nil, true)
+    end
+  end)
 end
 
 function M33kAuras.ShowOptions(msg)
@@ -829,7 +692,6 @@ function M33kAuras.ShowOptions(msg)
 
   if (firstLoad) then
     frame = OptionsPrivate.CreateFrame();
-    frame.buttonsScroll.frame:Show();
 
     LayoutDisplayButtons(msg);
   end
@@ -842,7 +704,6 @@ function M33kAuras.ShowOptions(msg)
     frame:SetHeight(GetScreenHeight() - 50)
   end
 
-  frame.buttonsScroll.frame:Show();
 
   if (frame.needsSort) then
     OptionsPrivate.SortDisplayButtons();
@@ -866,7 +727,7 @@ function M33kAuras.ShowOptions(msg)
   if not(firstLoad) then
     -- Show what was last shown
     local suspended = OptionsPrivate.Private.PauseAllDynamicGroups()
-    for id, button in pairs(displayButtons) do
+    for id, button in pairs(displayEntries) do
       button:SyncVisibility()
     end
     OptionsPrivate.Private.ResumeAllDynamicGroups(suspended)
@@ -949,8 +810,8 @@ end
 
 function OptionsPrivate.ConvertDisplay(data, newType)
   local id = data.id;
-  local visibility = displayButtons[id]:GetVisibility();
-  displayButtons[id]:PriorityHide(2);
+  local visibility = displayEntries[id]:GetVisibility();
+  displayEntries[id]:PriorityHide(2);
 
   if OptionsPrivate.Private.regions[id] and OptionsPrivate.Private.regions[id].region then
     OptionsPrivate.Private.regions[id].region:Collapse()
@@ -958,8 +819,8 @@ function OptionsPrivate.ConvertDisplay(data, newType)
   OptionsPrivate.Private.CollapseAllClones(id);
 
   OptionsPrivate.Private.Convert(data, newType);
-  displayButtons[id]:Initialize();
-  displayButtons[id]:PriorityShow(visibility);
+  displayEntries[id]:Initialize();
+  displayEntries[id]:PriorityShow(visibility);
   frame:ClearOptions(id)
   frame:FillOptions();
   M33kAuras.UpdateThumbnail(data);
@@ -969,317 +830,33 @@ function OptionsPrivate.ConvertDisplay(data, newType)
 end
 
 function M33kAuras.NewDisplayButton(data, massEdit)
-  local id = data.id;
-  OptionsPrivate.Private.ScanForLoads({[id] = true});
-  EnsureDisplayButton(db.displays[id]);
-  M33kAuras.UpdateThumbnail(db.displays[id]);
-  frame.buttonsScroll:AddChild(displayButtons[id]);
-  if not massEdit then
-    OptionsPrivate.SortDisplayButtons()
-  end
+  OptionsPrivate.auraListModel:Ensure(data)
+  OptionsPrivate.Private.ScanForLoads({[data.id] = true})
+  if not massEdit then OptionsPrivate.RequestAuraListRefresh() end
 end
 
 function M33kAuras.UpdateGroupOrders(data)
-  if(data.controlledChildren) then
-    local total = #data.controlledChildren;
-    for index, id in pairs(data.controlledChildren) do
-      local button = OptionsPrivate.GetDisplayButton(id);
-      button:SetGroupOrder(index, total);
-    end
+  for _, id in ipairs(data.controlledChildren or {}) do
+    local entry = OptionsPrivate.GetDisplayEntry(id)
+    if entry then entry:Refresh() end
   end
+  OptionsPrivate.RequestAuraListRefresh()
 end
 
-function OptionsPrivate.UpdateButtonsScroll()
-  if OptionsPrivate.Private.IsOptionsProcessingPaused() then return end
-  frame.buttonsScroll:DoLayout()
+function OptionsPrivate.SortDisplayButtons(filter)
+  if not frame then return end
+  if OptionsPrivate.IsAuraListBusy() then
+    frame.needsSort = true
+    return
+  end
+  frame.needsSort = nil
+  filter = filter or frame.filterInput:GetText()
+  if frame.filterInput:GetText() ~= filter then
+    frame.filterInput:SetText(filter)
+    return
+  end
+  OptionsPrivate.RefreshAuraList(filter)
 end
-
-local function addButton(button, aurasMatchingFilter, visible)
-  button.frame:Show();
-  if button.AcquireThumbnail then
-    button:AcquireThumbnail()
-  end
-  tinsert(frame.buttonsScroll.children, button);
-  visible[button] = true
-
-  if button.data.controlledChildren and button:GetExpanded() then
-    for _, childId in ipairs(button.data.controlledChildren) do
-      if aurasMatchingFilter[childId] then
-        addButton(displayButtons[childId], aurasMatchingFilter, visible)
-      end
-    end
-  end
-end
-
-local previousFilter;
-local pendingUpdateButtons = {}
-local pendingInstallButtons = {}
-function OptionsPrivate.SortDisplayButtons(filter, overrideReset, id)
-  if (OptionsPrivate.Private.IsOptionsProcessingPaused()) then
-    return;
-  end
-
-  local recenter = false;
-  filter = filter or (overrideReset and previousFilter or "");
-  if(frame.filterInput:GetText() ~= filter) then
-    frame.filterInput:SetText(filter);
-  end
-  if(previousFilter and previousFilter ~= "" and (filter == "" or not filter)) then
-    recenter = true;
-  end
-  previousFilter = filter;
-  filter = filter:lower();
-
-  wipe(frame.buttonsScroll.children);
-
-  local pendingInstallButtonShown = false
-  if OptionsPrivate.Private.CompanionData.stash then
-    for id, companionData in pairs(OptionsPrivate.Private.CompanionData.stash) do
-      if not pendingInstallButtonShown then
-        tinsert(frame.buttonsScroll.children, frame.pendingInstallButton)
-        pendingInstallButtonShown = true
-      end
-      local child = pendingInstallButtons[id]
-      if frame.pendingInstallButton:GetExpanded() then
-        if not child then
-          child = AceGUI:Create("M33kAurasPendingInstallButton")
-          pendingInstallButtons[id] = child
-          child:Initialize(id, companionData)
-          if companionData.logo then
-            child:SetLogo(companionData.logo)
-          end
-          if companionData.refreshLogo then
-            child:SetRefreshLogo(companionData.refreshLogo)
-          end
-          child.frame:Show()
-          child:AcquireThumbnail()
-          frame.buttonsScroll:AddChild(child)
-        else
-          if not child.frame:IsShown() then
-            child.frame:Show()
-            child:AcquireThumbnail()
-          end
-          tinsert(frame.buttonsScroll.children, child)
-        end
-      elseif child then
-        child.frame:Hide()
-        if child.ReleaseThumbnail then
-          child:ReleaseThumbnail()
-        end
-      end
-    end
-  end
-  if not pendingInstallButtonShown and frame.pendingInstallButton then
-    frame.pendingInstallButton.frame:Hide()
-  end
-
-  local pendingUpdateButtonShown = false
-  if OptionsPrivate.Private.CompanionData.slugs then
-    local buttonsShown = {}
-    for _, button in pairs(pendingUpdateButtons) do
-      button:ResetLinkedAuras()
-    end
-    for id, aura in pairs(M33kAurasSaved.displays) do
-      if not aura.ignoreWagoUpdate and aura.url and aura.url ~= "" then
-        local slug, version = aura.url:match("wago.io/([^/]+)/([0-9]+)")
-        if not slug and not version then
-          slug = aura.url:match("wago.io/([^/]+)$")
-          version = 1
-        end
-        if slug and version then
-          local auraData = OptionsPrivate.Private.CompanionData.slugs[slug]
-          if auraData and auraData.wagoVersion then
-            if tonumber(auraData.wagoVersion) > tonumber(version) then
-              -- there is an update for this aura
-              if not pendingUpdateButtonShown then
-                tinsert(frame.buttonsScroll.children, frame.pendingUpdateButton)
-                pendingUpdateButtonShown = true
-              end
-              if frame.pendingUpdateButton:GetExpanded() then
-                local child = pendingUpdateButtons[slug]
-                if not child then
-                  child = AceGUI:Create("M33kAurasPendingUpdateButton")
-                  pendingUpdateButtons[slug] = child
-                  child:Initialize(slug, auraData)
-                  if auraData.logo then
-                    child:SetLogo(auraData.logo)
-                  end
-                  if auraData.refreshLogo then
-                    child:SetRefreshLogo(auraData.refreshLogo)
-                  end
-                  child.frame:Show()
-                  child:AcquireThumbnail()
-                  frame.buttonsScroll:AddChild(child)
-                  buttonsShown[slug] = true
-                end
-                if not child.frame:IsShown() then
-                  child.frame:Show()
-                  child:AcquireThumbnail()
-                end
-                if not buttonsShown[slug] then
-                  tinsert(frame.buttonsScroll.children, child)
-                  buttonsShown[slug] = true
-                end
-                child:MarkLinkedAura(id)
-                for childData in OptionsPrivate.Private.TraverseAllChildren(aura) do
-                  child:MarkLinkedChildren(childData.id)
-                end
-              end
-            end
-          end
-        end
-      end
-    end
-    -- hide all buttons not marked as shown
-    for slug, button in pairs(pendingUpdateButtons) do
-      if not buttonsShown[slug] then
-        if button and button.frame:IsShown() then
-          button.frame:Hide()
-          if button.ReleaseThumbnail then
-            button:ReleaseThumbnail()
-          end
-        end
-      end
-    end
-  end
-  if not pendingUpdateButtonShown and frame.pendingUpdateButton then
-    frame.pendingUpdateButton.frame:Hide()
-  end
-
-  tinsert(frame.buttonsScroll.children, frame.loadedButton);
-
-  local aurasMatchingFilter = {}
-  local useTextFilter = filter ~= ""
-  local filterTable = OptionsPrivate.Private.splitAtOr(filter)
-  local topLevelLoadedAuras = {}
-  local topLevelUnloadedAuras = {}
-  local visible = {}
-
-  for id, child in pairs(displayButtons) do
-    if child.data.load.use_never then
-      child.background:SetVertexColor(1, 0.12, 0.12, 0.25)
-    else
-      child.background:SetVertexColor(0.5, 0.5, 0.5, 0.25);
-    end
-
-    if child.data.controlledChildren then
-      local anyLoaded = false
-      for aura in OptionsPrivate.Private.TraverseAllChildren(child.data) do
-        if not aura.controlledChildren and not aura.load.use_never then
-          anyLoaded = true
-          break
-        end
-      end
-      if not anyLoaded then
-        child.background:SetVertexColor(1, 0.12, 0.12, 0.25)
-      else
-        child.background:SetVertexColor(0.5, 0.5, 0.5, 0.25);
-      end
-    end
-
-    if child.data.controlledChildren then
-      local hasLoaded, hasStandBy, hasNotLoaded = 0, 0, 0
-      for leaf in OptionsPrivate.Private.TraverseLeafs(child.data) do
-        local id = leaf.id
-        if OptionsPrivate.Private.loaded[id] == true then
-          hasLoaded = hasLoaded + 1
-        elseif OptionsPrivate.Private.loaded[id] == false then
-          hasStandBy = hasStandBy + 1
-        else
-          hasNotLoaded = hasNotLoaded + 1
-        end
-      end
-      if hasLoaded > 0 then
-        child:SetLoaded(1, "loaded", L["Loaded"], L["%d displays loaded"]:format(hasLoaded))
-      elseif hasStandBy > 0 then
-        child:SetLoaded(2, "standby", L["Standby"], L["%d displays on standby"]:format(hasStandBy))
-      elseif hasNotLoaded > 0 then
-        child:SetLoaded(3, "unloaded", L["Not Loaded"], L["%d displays not loaded"]:format(hasNotLoaded))
-      else
-        child:ClearLoaded()
-      end
-    else
-      if OptionsPrivate.Private.loaded[id] == true then
-        child:SetLoaded(1, "loaded", L["Loaded"], L["This display is currently loaded"])
-      elseif OptionsPrivate.Private.loaded[id] == false then
-        child:SetLoaded(2, "standby", L["Standby"], L["This display is on standby, it will be loaded when needed."])
-      else
-        child:SetLoaded(3, "unloaded", L["Not Loaded"], L["This display is not currently loaded"])
-      end
-    end
-
-    if useTextFilter then
-      for _, word in ipairs(filterTable) do
-        if(id:lower():find(word, 1, true)) then
-          aurasMatchingFilter[id] = true
-          for parent in OptionsPrivate.Private.TraverseParents(child.data) do
-            aurasMatchingFilter[parent.id] = true
-          end
-        end
-      end
-    else
-      aurasMatchingFilter[id] = true
-    end
-
-    if not child:GetGroup() then
-      -- Top Level aura
-      if OptionsPrivate.Private.loaded[id] ~= nil then
-        tinsert(topLevelLoadedAuras, id)
-      else
-        tinsert(topLevelUnloadedAuras, id)
-      end
-    end
-  end
-
-  wipe(frame.loadedButton.childButtons)
-  if frame.loadedButton:GetExpanded() then
-    table.sort(topLevelLoadedAuras, function(a, b) return a:lower() < b:lower() end)
-    for _, id in ipairs(topLevelLoadedAuras) do
-      if aurasMatchingFilter[id] then
-        addButton(displayButtons[id], aurasMatchingFilter, visible)
-      end
-    end
-  end
-
-  for _, id in ipairs(topLevelLoadedAuras) do
-    for child in OptionsPrivate.Private.TraverseLeafsOrAura(M33kAuras.GetData(id)) do
-      tinsert(frame.loadedButton.childButtons, displayButtons[child.id])
-    end
-  end
-
-  tinsert(frame.buttonsScroll.children, frame.unloadedButton);
-
-  wipe(frame.unloadedButton.childButtons)
-  if frame.unloadedButton:GetExpanded() then
-    table.sort(topLevelUnloadedAuras, function(a, b) return a:lower() < b:lower() end)
-    for _, id in ipairs(topLevelUnloadedAuras) do
-      if aurasMatchingFilter[id] then
-        addButton(displayButtons[id], aurasMatchingFilter, visible)
-      end
-    end
-  end
-
-  for _, id in ipairs(topLevelUnloadedAuras) do
-    for child in OptionsPrivate.Private.TraverseLeafsOrAura(M33kAuras.GetData(id)) do
-      tinsert(frame.unloadedButton.childButtons, displayButtons[child.id])
-    end
-  end
-
-  for _, child in pairs(displayButtons) do
-    if(not visible[child]) then
-      child.frame:Hide();
-      if child.ReleaseThumbnail then
-        child:ReleaseThumbnail()
-      end
-    end
-  end
-
-  frame.buttonsScroll:DoLayout();
-  if(recenter) then
-    frame:CenterOnPicked();
-  end
-end
-
 
 function OptionsPrivate.IsPickedMultiple()
   if(frame.pickedDisplay == tempGroup) then
@@ -1304,13 +881,11 @@ end
 
 function M33kAuras.PickDisplay(id, tab, noHide)
   frame:PickDisplay(id, tab, noHide)
-  OptionsPrivate.UpdateButtonsScroll()
 end
 
 function OptionsPrivate.PickAndEditDisplay(id)
   frame:PickDisplay(id);
-  OptionsPrivate.UpdateButtonsScroll()
-  displayButtons[id].callbacks.OnRenameClick();
+  displayEntries[id].callbacks.OnRenameClick();
 end
 
 function OptionsPrivate.ClearPick(id)
@@ -1326,86 +901,30 @@ function OptionsPrivate.PickDisplayMultiple(id)
 end
 
 function OptionsPrivate.PickDisplayMultipleShift(target)
-  if (frame.pickedDisplay) then
-    -- get first aura selected
-    local first;
-    if (OptionsPrivate.IsPickedMultiple()) then
-      first = tempGroup.controlledChildren[#tempGroup.controlledChildren];
-    else
-      first = frame.pickedDisplay;
-    end
-    if (first and first ~= target) then
-      -- check if target and first are in same group and are not a group
-      local firstData = M33kAuras.GetData(first);
-      local targetData = M33kAuras.GetData(target);
-      if (firstData.parent == targetData.parent and not targetData.controlledChildren and not firstData.controlledChildren) then
-        local batchSelection = {};
-        -- in a group
-        if (firstData.parent) then
-          local group = M33kAuras.GetData(targetData.parent);
-          for index, child in ipairs(group.controlledChildren) do
-            -- 1st button
-            if (child == target or child == first) then
-              table.insert(batchSelection, child);
-              for i = index + 1, #group.controlledChildren do
-                local current = group.controlledChildren[i];
-                if (M33kAuras.GetData(current).controlledChildren) then
-                  -- Skip sub groups
-                else
-                  table.insert(batchSelection, current);
-                end
-                -- last button: stop selection
-                if (current == target or current == first) then
-                  break;
-                end
-              end
-              break;
-            end
-          end
-        elseif (firstData.parent == nil and targetData.parent == nil) then
-          -- top-level
-          for index, button in ipairs(frame.buttonsScroll.children) do
-            if button.type == "M33kAurasDisplayButton" then
-              local data = button.data;
-              -- 1st button
-              if (data and (data.id == target or data.id == first)) then
-                table.insert(batchSelection, data.id);
-                for i = index + 1, #frame.buttonsScroll.children do
-                  local current = frame.buttonsScroll.children[i];
-                  local currentData = current.data;
-                  if currentData and not currentData.parent and not currentData.controlledChildren then
-                    table.insert(batchSelection, currentData.id);
-                    -- last button: stop selection
-                    if (currentData.id == target or currentData.id == first) then
-                      break;
-                    end
-                  end
-                end
-                break;
-              end
-            end
-          end
-        end
-        if #batchSelection > 0 then
-          frame:PickDisplayBatch(batchSelection);
-        end
-      end
-    end
-  else
-    M33kAuras.PickDisplay(target);
+  if not frame.pickedDisplay then M33kAuras.PickDisplay(target); return end
+  local first = OptionsPrivate.IsPickedMultiple() and tempGroup.controlledChildren[#tempGroup.controlledChildren] or frame.pickedDisplay
+  local firstData, targetData = M33kAuras.GetData(first), M33kAuras.GetData(target)
+  if not firstData or not targetData or firstData.parent ~= targetData.parent or firstData.controlledChildren or targetData.controlledChildren then return end
+  local visible = OptionsPrivate.auraListModel:VisibleEntries(function(entry) return entry:GetExpanded() end,
+    function(section) return (section == "loaded" and frame.loadedButton or frame.unloadedButton):GetExpanded() end)
+  local from, to
+  for i, entry in ipairs(visible) do
+    if entry.data.id == first then from = i end
+    if entry.data.id == target then to = i end
   end
-end
-
-function OptionsPrivate.GetDisplayButton(id)
-  if(id and displayButtons[id]) then
-    return displayButtons[id];
+  if not from or not to then return end
+  if from > to then from, to = to, from end
+  local selection = {}
+  for i = from, to do
+    local data = visible[i].data
+    if data.parent == firstData.parent and not data.controlledChildren then selection[#selection + 1] = data.id end
   end
+  frame:PickDisplayBatch(selection)
 end
 
 function OptionsPrivate.AddDisplayButton(data)
-  EnsureDisplayButton(data);
-  M33kAuras.UpdateThumbnail(data);
-  frame.buttonsScroll:AddChild(displayButtons[data.id]);
+  OptionsPrivate.auraListModel:Ensure(data)
+  OptionsPrivate.RequestAuraListRefresh()
 end
 
 function OptionsPrivate.StartGrouping(data)
@@ -1413,7 +932,7 @@ function OptionsPrivate.StartGrouping(data)
     return
   end
 
-  if not OptionsPrivate.IsDisplayPicked(data) then
+  if not OptionsPrivate.IsDisplayPicked(data.id) then
     M33kAuras.PickDisplay(data.id)
   end
 
@@ -1421,12 +940,12 @@ function OptionsPrivate.StartGrouping(data)
     local children = {};
     -- start grouping for selected buttons
     for index, childId in ipairs(tempGroup.controlledChildren) do
-      local button = OptionsPrivate.GetDisplayButton(childId);
+      local button = OptionsPrivate.GetDisplayEntry(childId);
       button:StartGrouping(tempGroup.controlledChildren, true);
       children[childId] = true;
     end
     -- set grouping for non selected buttons
-    for _, button in pairs(displayButtons) do
+    for _, button in pairs(displayEntries) do
       if not children[button.data.id] then
         button:StartGrouping(tempGroup.controlledChildren, false);
       end
@@ -1437,7 +956,7 @@ function OptionsPrivate.StartGrouping(data)
       children[child.id] = true
     end
 
-    for id, button in pairs(displayButtons) do
+    for id, button in pairs(displayEntries) do
       button:StartGrouping({data.id},
                            data.id == id,
                            data.regionType == "dynamicgroup" or data.regionType == "group",
@@ -1447,7 +966,7 @@ function OptionsPrivate.StartGrouping(data)
 end
 
 function OptionsPrivate.StopGrouping(data)
-  for id, button in pairs(displayButtons) do
+  for id, button in pairs(displayEntries) do
     button:StopGrouping();
   end
 end
@@ -1459,21 +978,23 @@ function OptionsPrivate.Ungroup(data)
 
   if (frame.pickedDisplay == tempGroup and #tempGroup.controlledChildren > 0) then
     for index, childId in ipairs(tempGroup.controlledChildren) do
-      local button = OptionsPrivate.GetDisplayButton(childId);
+      local button = OptionsPrivate.GetDisplayEntry(childId);
       button:Ungroup(data);
     end
   else
-    local button = OptionsPrivate.GetDisplayButton(data.id);
+    local button = OptionsPrivate.GetDisplayEntry(data.id);
     button:Ungroup(data);
   end
   M33kAuras.FillOptions()
 end
 
 function OptionsPrivate.DragReset()
-  for _, button in pairs(displayButtons) do
+  OptionsPrivate.EndAuraDrag()
+  -- A released drop owns its snapshot until the scheduler completes or cancels it.
+  if OptionsPrivate.movingAuras then return end
+  for _, button in pairs(displayEntries) do
     button:DragReset();
   end
-  OptionsPrivate.UpdateButtonsScroll()
 end
 
 local function CompareButtonOrder(a, b)
@@ -1511,8 +1032,8 @@ local function CompareButtonOrder(a, b)
       if (parents[parent]) then
         -- We have found the common parent, the last node in the chain is
         -- Compare the previous nodes GroupOrder
-        local aButton = OptionsPrivate.GetDisplayButton(parents[parent])
-        local bButton = OptionsPrivate.GetDisplayButton(bNode)
+        local aButton = OptionsPrivate.GetDisplayEntry(parents[parent])
+        local bButton = OptionsPrivate.GetDisplayEntry(bNode)
         return aButton:GetGroupOrder() < bButton:GetGroupOrder()
       end
       lastBParent = parent
@@ -1521,8 +1042,8 @@ local function CompareButtonOrder(a, b)
   end
 
   -- If we are here there was no common parent
-  local aButton = OptionsPrivate.GetDisplayButton(lastAParent)
-  local bButton = OptionsPrivate.GetDisplayButton(lastBParent)
+  local aButton = OptionsPrivate.GetDisplayEntry(lastAParent)
+  local bButton = OptionsPrivate.GetDisplayEntry(lastBParent)
 
   return aButton.data.id < bButton.data.id
 end
@@ -1532,80 +1053,49 @@ local function CompareButtonOrderReverse(a, b)
 end
 
 function OptionsPrivate.Drop(mainAura, target, action, area)
+  if OptionsPrivate.movingAuras then return end
+  OptionsPrivate.EndAuraDrag()
   M33kAuras_DropDownMenu:Hide()
+  if not target or not action then OptionsPrivate.DragReset(); return end
 
-  local func1 = function()
-    frame:SetLoadProgressVisible(true)
-
-    local total = 0
-    local num = 0
-    for id, button in pairs(displayButtons) do
-      if button:IsDragging() then
-        total = total + 1
-      end
-    end
-    frame.loadProgress:SetText(L["Moving auras: "]..num.."/"..total)
-
-    local mode = ""
-    if (frame.pickedDisplay == tempGroup and #tempGroup.controlledChildren > 0) then
-      mode = "MULTI"
-    elseif mainAura.controlledChildren then
-      mode = "GROUP"
-    else
-      mode = "SINGLE"
-    end
-
-    local buttonsToSort = {}
-
-    for id, button in pairs(displayButtons) do
-      if button:IsDragging() then
-        tinsert(buttonsToSort, button)
-        num = num + 1
-        frame.loadProgress:SetText(L["Preparing auras: "]..num.."/"..total)
-      else
-        button:Drop(mode, mainAura, target, action);
-      end
-      coroutine.yield()
-    end
-
-    num = 0
-    frame.loadProgress:SetText(L["Moving auras: "]..num.."/"..total)
-    if mode == "MULTI" then
-      -- If we are dragging and dropping multiple auras at once, the order in which we drop is important
-      -- We want to preserve the top-down order
-      -- Depending on how exactly we find the insert position, we need to use the right order of insertions
-      if area == "GROUP" then
-        table.sort(buttonsToSort, CompareButtonOrderReverse)
-      elseif area == "BEFORE" then
-        table.sort(buttonsToSort, CompareButtonOrder)
-      else -- After
-        table.sort(buttonsToSort, CompareButtonOrderReverse)
-      end
-    end
-
-    for _, button in ipairs(buttonsToSort) do
-      button:Drop(mode, mainAura, target, action)
-      num = num + 1
-      frame.loadProgress:SetText(L["Moving auras: "]..num.."/"..total)
-      coroutine.yield()
-    end
-
-    -- Update offset, this is a bit wasteful to do for every aura
-    -- But we also need to update the offset if a parent was dragged
-    for _, button in pairs(displayButtons) do
-      button:UpdateOffset();
-    end
-    coroutine.yield()
-    frame:SetLoadProgressVisible(false)
-    OptionsPrivate.SortDisplayButtons()
-    OptionsPrivate.UpdateButtonsScroll()
-    M33kAuras.FillOptions()
+  local mode = OptionsPrivate.IsPickedMultiple() and "MULTI" or mainAura.controlledChildren and "GROUP" or "SINGLE"
+  local entries = {}
+  for _, entry in pairs(displayEntries) do
+    if entry:IsDragging() then entries[#entries + 1] = entry end
+  end
+  if #entries == 0 then OptionsPrivate.DragReset(); return end
+  if mode == "MULTI" then
+    table.sort(entries, area == "BEFORE" and CompareButtonOrder or CompareButtonOrderReverse)
+  end
+  local function isCurrent(entry)
+    local data = M33kAuras.GetData(entry.data.id)
+    return data and data.uid == entry.uid
   end
 
-  OptionsPrivate.Private:Async({name = "Dropping Auras"}, func1)
+  -- Reserve the operation before Async starts; OnHide and duplicate mouse events
+  -- must not change the selected sources between scheduler slices.
+  OptionsPrivate.movingAuras = true
+  frame:SetLoadProgressVisible(true)
+  local completed
+  OptionsPrivate.Private:Async({name = "Dropping Auras"}, function()
+    for index, entry in ipairs(entries) do
+      if not isCurrent(target) then break end
+      if isCurrent(entry) then entry:Drop(mode, mainAura, target, action) end
+      frame.loadProgress:SetText(L["Moving auras: "] .. index .. "/" .. #entries)
+      coroutine.yield()
+    end
+    completed = true
+  end):Finally(function()
+    OptionsPrivate.movingAuras = nil
+    frame:SetLoadProgressVisible(false)
+    OptionsPrivate.DragReset()
+    OptionsPrivate.SortDisplayButtons(nil, true)
+    if completed then M33kAuras.FillOptions() end
+  end)
 end
 
 function OptionsPrivate.StartDrag(mainAura)
+  if OptionsPrivate.movingAuras or M33kAuras.IsImporting() then return end
   M33kAuras_DropDownMenu:Hide()
 
   if (frame.pickedDisplay == tempGroup and #tempGroup.controlledChildren > 0) then
@@ -1615,12 +1105,12 @@ function OptionsPrivate.StartDrag(mainAura)
     -- set dragging for selected buttons in reverse for ordering
 
     for child in OptionsPrivate.Private.TraverseAllChildren(tempGroup) do
-      local button = OptionsPrivate.GetDisplayButton(child.id);
+      local button = OptionsPrivate.GetDisplayEntry(child.id);
       button:DragStart("MULTI", true, mainAura, size)
       children[child.id] = true
     end
     -- set dragging for non selected buttons
-    for id, button in pairs(displayButtons) do
+    for id, button in pairs(displayEntries) do
       if not children[button.data.id] then
         button:DragStart("MULTI", false, mainAura);
       end
@@ -1631,23 +1121,22 @@ function OptionsPrivate.StartDrag(mainAura)
       local mode = "GROUP"
       local children = {};
       for child in OptionsPrivate.Private.TraverseAll(mainAura) do
-        local button = OptionsPrivate.GetDisplayButton(child.id);
+        local button = OptionsPrivate.GetDisplayEntry(child.id);
         button:DragStart(mode, true, mainAura)
         children[child.id] = true
       end
       -- set dragging for non selected buttons
-      for _, button in pairs(displayButtons) do
+      for _, button in pairs(displayEntries) do
         if not children[button.data.id] then
           button:DragStart(mode, false, mainAura);
         end
       end
     else
-      for id, button in pairs(displayButtons) do
+      for id, button in pairs(displayEntries) do
         button:DragStart("SINGLE", id == mainAura.id, mainAura);
       end
     end
   end
-  OptionsPrivate.UpdateButtonsScroll()
 end
 
 function OptionsPrivate.DropIndicator()
@@ -1673,14 +1162,15 @@ function OptionsPrivate.DropIndicator()
     indicator:Hide()
 
     function indicator:ShowAction(target, action)
+      if not target.row then self:Hide(); return end
       self:Show()
       self:ClearAllPoints()
       if action == "GROUP" then
         self.groupTexture:ClearAllPoints()
         self.groupTexture:SetVertexColor(0.4, 0.7, 1, 0.7)
         self.groupTexture:Show()
-        self.groupTexture:SetPoint("TOPLEFT", target.icon, "TOPRIGHT", 2, -1)
-        self.groupTexture:SetPoint("BOTTOMRIGHT", target.frame, "BOTTOMRIGHT", 0, 1)
+        self.groupTexture:SetPoint("TOPLEFT", target.row.icon, "TOPRIGHT", 2, -1)
+        self.groupTexture:SetPoint("BOTTOMRIGHT", target.row.frame, "BOTTOMRIGHT", 0, 1)
       else
         self.groupTexture:Hide()
       end
@@ -1688,13 +1178,13 @@ function OptionsPrivate.DropIndicator()
       -- Position line texture, if needed
       if action == "BEFORE" then
         self.lineTexture:Show()
-        self:SetPoint("BOTTOMLEFT", target.frame, "TOPLEFT", 0, -1)
-        self:SetPoint("BOTTOMRIGHT", target.frame, "TOPRIGHT", 0, -1)
+        self:SetPoint("BOTTOMLEFT", target.row.frame, "TOPLEFT", 0, -1)
+        self:SetPoint("BOTTOMRIGHT", target.row.frame, "TOPRIGHT", 0, -1)
         self:SetHeight(4)
       elseif action == "AFTER" then
         self.lineTexture:Show()
-        self:SetPoint("TOPLEFT", target.frame, "BOTTOMLEFT", 0, 1)
-        self:SetPoint("TOPRIGHT", target.frame, "BOTTOMRIGHT", 0, 1)
+        self:SetPoint("TOPLEFT", target.row.frame, "BOTTOMLEFT", 0, 1)
+        self:SetPoint("TOPRIGHT", target.row.frame, "BOTTOMRIGHT", 0, 1)
         self:SetHeight(4)
       else
         self.lineTexture:Hide()
@@ -1706,8 +1196,10 @@ function OptionsPrivate.DropIndicator()
 end
 
 function M33kAuras.UpdateThumbnail(data)
+  if type(data) == "string" then data = M33kAuras.GetData(data) end
+  if not data then return end
   local id = data.id
-  local button = displayButtons[id]
+  local button = displayEntries[id]
   if (not button) then
     return
   end
@@ -1969,13 +1461,13 @@ function M33kAuras.NewAura(sourceData, regionType, targetId)
   AddDefaultSubRegions(data)
 
   if targetId then
-    local target = OptionsPrivate.GetDisplayButton(targetId);
+    local target = OptionsPrivate.GetDisplayEntry(targetId);
     local group
     if (target) then
       if (target:IsGroup()) then
         group = target;
       else
-        group = OptionsPrivate.GetDisplayButton(target.data.parent);
+        group = OptionsPrivate.GetDisplayEntry(target.data.parent);
       end
       if (group) then
         -- Sanity check so that we don't create a group/dynamic group in a group

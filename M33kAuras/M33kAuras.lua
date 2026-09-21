@@ -593,7 +593,13 @@ function Private.RegisterRegionOptions(name, createFunction, icon, displayName, 
       acquireThumbnail = function(parent, data)
         local thumbnail, newObject = thumbnailPool:Acquire()
         thumbnail:Show()
-        modifyThumbnail(parent, thumbnail, data)
+        local ok, err = pcall(modifyThumbnail, parent, thumbnail, data)
+        if not ok then
+          -- Ownership has not reached the row yet; return this failed acquisition.
+          thumbnail:Hide()
+          thumbnailPool:Release(thumbnail)
+          error(err, 0)
+        end
         return thumbnail
       end
       releaseThumbnail = function(thumbnail)

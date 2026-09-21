@@ -6,7 +6,7 @@ local OptionsPrivate = select(2, ...)
 
 local pairs, next, type, unpack = pairs, next, type, unpack
 
-local Type, Version = "M33kAurasPendingInstallButton", 3
+local Type, Version = "M33kAurasPendingInstallButton", 5
 local AceGUI = LibStub and LibStub("AceGUI-3.0", true)
 
 if not AceGUI or (AceGUI:GetWidgetVersion(Type) or 0) >= Version then
@@ -21,6 +21,8 @@ local methods = {
     self:SetWidth(1000)
     self:SetHeight(32)
     self.hasThumbnail = false
+    self:SetLogo([[Interface\AddOns\M33kAuras\Media\Textures\wagoupdate_logo.tga]])
+    self:SetRefreshLogo([[Interface\AddOns\M33kAuras\Media\Textures\wagoupdate_refresh.tga]])
   end,
   ["Initialize"] = function(self, id, companionData)
     self.callbacks = {}
@@ -33,9 +35,8 @@ local methods = {
 
     self:SetTitle(self.companionData.name)
     self.update:SetScript("OnClick", self.callbacks.OnUpdateClick)
-    local data = OptionsPrivate.Private.StringToTable(self.companionData.encoded, true)
-    M33kAuras.PreAdd(data.d)
-    self.data = data.d
+    self.data = OptionsPrivate.GetCompanionPreview(self.companionData)
+    if not self.data then self:Disable(); return end
     self.frame:EnableKeyboard(false)
     self:Enable()
     self.frame:Hide()
@@ -49,6 +50,7 @@ local methods = {
   ["Disable"] = function(self)
     self.background:Hide()
     self.frame:Disable()
+    self.update:Disable()
   end,
   ["Enable"] = function(self)
     self.background:Show()
@@ -67,7 +69,16 @@ local methods = {
     self.frame:SetScript("OnClick", nil)
     self.frame:ClearAllPoints()
     self.frame:Hide()
-    self.frame = nil
+    self.update.animGroup:Stop()
+    self.update:SetScript("OnClick", nil)
+    self.companionData = nil
+    self.frame.description = nil
+    self.menu = nil
+    self.callbacks = nil
+    self.iconRegion = nil
+    self.orgIcon = nil
+    self.linkedAuras = nil
+    self.linkedChildren = nil
     self.data = nil
   end,
   ["SetTitle"] = function(self, title)
@@ -77,63 +88,9 @@ local methods = {
   ["SetClick"] = function(self, func)
     self.frame:SetScript("OnClick", func)
   end,
-  ["UpdateThumbnail"] = function(self)
-    if not self.hasThumbnail then
-      return
-    end
-
-    if self.data.regionType ~= self.thumbnailType then
-      self:ReleaseThumbnail()
-      self:AcquireThumbnail()
-    else
-      local option = OptionsPrivate.Private.regionOptions[self.thumbnailType]
-      if option and option.modifyThumbnail then
-        option.modifyThumbnail(self.frame, self.thumbnail, self.data)
-      end
-    end
-  end,
-  ["ReleaseThumbnail"] = function(self)
-    if not self.hasThumbnail then
-      return
-    end
-    self.hasThumbnail = false
-
-    if self.thumbnail then
-      local regionType = self.thumbnailType
-      local option = OptionsPrivate.Private.regionOptions[regionType]
-      if self.thumbnail.icon then
-        self.thumbnail.icon:SetDesaturated(false)
-      end
-      option.releaseThumbnail(self.thumbnail)
-      self.thumbnail = nil
-    end
-  end,
-  ["AcquireThumbnail"] = function(self)
-    if self.hasThumbnail then
-      return
-    end
-
-    if not self.data then
-      return
-    end
-
-    self.hasThumbnail = true
-
-    local button = self.frame
-    local regionType = self.data.regionType
-    self.thumbnailType = regionType
-
-    local option = OptionsPrivate.Private.regionOptions[regionType]
-    if option and option.acquireThumbnail then
-      self.thumbnail = option.acquireThumbnail(button, self.data)
-      if self.thumbnail.icon then
-        self.thumbnail.icon:SetDesaturated(true)
-      end
-      self:SetIcon(self.thumbnail)
-    else
-      self:SetIcon("Interface\\Icons\\INV_Misc_QuestionMark")
-    end
-  end,
+  ["UpdateThumbnail"] = OptionsPrivate.AuraListThumbnail.Update,
+  ["ReleaseThumbnail"] = OptionsPrivate.AuraListThumbnail.Release,
+  ["AcquireThumbnail"] = function(self) OptionsPrivate.AuraListThumbnail.Acquire(self, true) end,
   ["SetIcon"] = function(self, icon)
     self.orgIcon = icon
     if (type(icon) == "string" or type(icon) == "number") then
@@ -201,7 +158,6 @@ local function Constructor()
   update:SetHeight(24)
   update:SetPoint("RIGHT", button, "RIGHT", -2, 0)
 
-  -- Add logo
   local updateLogo = CreateFrame("Frame", nil, button)
   button.updateLogo = updateLogo
   local tex = updateLogo:CreateTexture()
@@ -213,7 +169,6 @@ local function Constructor()
   updateLogo:SetFrameStrata(update:GetFrameStrata())
   updateLogo:SetFrameLevel(update:GetFrameLevel()-1)
 
-  -- Animation On Hover
   local animGroup = update:CreateAnimationGroup()
   update.animGroup = animGroup
 

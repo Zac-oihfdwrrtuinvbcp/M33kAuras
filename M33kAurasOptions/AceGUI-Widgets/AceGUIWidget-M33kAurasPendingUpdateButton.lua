@@ -7,7 +7,7 @@ local L = M33kAuras.L
 
 local pairs, next, type, unpack = pairs, next, type, unpack
 
-local Type, Version = "M33kAurasPendingUpdateButton", 6
+local Type, Version = "M33kAurasPendingUpdateButton", 8
 local AceGUI = LibStub and LibStub("AceGUI-3.0", true)
 local LibDD = LibStub:GetLibrary("LibUIDropDownMenu-4.0")
 
@@ -51,6 +51,8 @@ local methods = {
     self:SetWidth(1000)
     self:SetHeight(32)
     self.hasThumbnail = false
+    self:SetLogo([[Interface\AddOns\M33kAuras\Media\Textures\wagoupdate_logo.tga]])
+    self:SetRefreshLogo([[Interface\AddOns\M33kAuras\Media\Textures\wagoupdate_refresh.tga]])
   end,
   ["Initialize"] = function(self, id, companionData)
     self.callbacks = {}
@@ -93,9 +95,8 @@ local methods = {
     self.frame:SetScript("OnClick", self.callbacks.OnClickNormal)
     self.update:SetScript("OnClick", self.callbacks.OnUpdateClick)
     self.followLink:SetScript("OnClick", self.callbacks.OnFollowLinkClick)
-    local data = OptionsPrivate.Private.StringToTable(self.companionData.encoded, true)
-    M33kAuras.PreAdd(data.d)
-    self.data = data.d
+    self.data = OptionsPrivate.GetCompanionPreview(self.companionData)
+    if not self.data then self:Disable(); return end
     self.frame:EnableKeyboard(false)
     self:Enable()
     self.frame:Hide()
@@ -117,6 +118,7 @@ local methods = {
   ["Disable"] = function(self)
     self.background:Hide()
     self.frame:Disable()
+    self.update:Disable()
   end,
   ["Enable"] = function(self)
     self.background:Show()
@@ -135,7 +137,17 @@ local methods = {
     self.frame:SetScript("OnClick", nil)
     self.frame:ClearAllPoints()
     self.frame:Hide()
-    self.frame = nil
+    self.update.animGroup:Stop()
+    self.update:SetScript("OnClick", nil)
+    self.followLink:SetScript("OnClick", nil)
+    self.companionData = nil
+    self.frame.description = nil
+    self.menu = nil
+    self.callbacks = nil
+    self.iconRegion = nil
+    self.orgIcon = nil
+    self.linkedAuras = nil
+    self.linkedChildren = nil
     self.data = nil
   end,
   ["SetNormalTooltip"] = function(self)
@@ -194,63 +206,9 @@ local methods = {
   ["MarkLinkedChildren"] = function(self, auraId)
     self.linkedChildren[auraId] = true
   end,
-  ["UpdateThumbnail"] = function(self)
-    if not self.hasThumbnail then
-      return
-    end
-
-    if self.data.regionType ~= self.thumbnailType then
-      self:ReleaseThumbnail()
-      self:AcquireThumbnail()
-    else
-      local option = OptionsPrivate.Private.regionOptions[self.thumbnailType]
-      if option and option.modifyThumbnail then
-        option.modifyThumbnail(self.frame, self.thumbnail, self.data)
-      end
-    end
-  end,
-  ["ReleaseThumbnail"] = function(self)
-    if not self.hasThumbnail then
-      return
-    end
-    self.hasThumbnail = false
-
-    if self.thumbnail then
-      local regionType = self.thumbnailType
-      local option = OptionsPrivate.Private.regionOptions[regionType]
-      if self.thumbnail.icon then
-        self.thumbnail.icon:SetDesaturated(false)
-      end
-      option.releaseThumbnail(self.thumbnail)
-      self.thumbnail = nil
-    end
-  end,
-  ["AcquireThumbnail"] = function(self)
-    if self.hasThumbnail then
-      return
-    end
-
-    if not self.data then
-      return
-    end
-
-    self.hasThumbnail = true
-
-    local button = self.frame
-    local regionType = self.data.regionType
-    self.thumbnailType = regionType
-
-    local option = OptionsPrivate.Private.regionOptions[regionType]
-    if option and option.acquireThumbnail then
-      self.thumbnail = option.acquireThumbnail(button, self.data)
-      if self.thumbnail.icon then
-        self.thumbnail.icon:SetDesaturated(true)
-      end
-      self:SetIcon(self.thumbnail)
-    else
-      self:SetIcon("Interface\\Icons\\INV_Misc_QuestionMark")
-    end
-  end,
+  ["UpdateThumbnail"] = OptionsPrivate.AuraListThumbnail.Update,
+  ["ReleaseThumbnail"] = OptionsPrivate.AuraListThumbnail.Release,
+  ["AcquireThumbnail"] = function(self) OptionsPrivate.AuraListThumbnail.Acquire(self, true) end,
   ["SetIcon"] = function(self, icon)
     self.orgIcon = icon
     if (type(icon) == "string" or type(icon) == "number") then
@@ -297,7 +255,6 @@ local function Constructor()
   icon:SetHeight(32)
   icon:SetPoint("LEFT", button, "LEFT")
 
-  -- follow link button
   local followLink = CreateFrame("Button", nil, button)
   button.followLink = followLink
   followLink:SetNormalAtlas("loottoast-arrow-green", true)
@@ -324,7 +281,6 @@ local function Constructor()
   update:SetHeight(24)
   update:SetPoint("RIGHT", followLink, "LEFT", -2, 0)
 
-  -- Add logo
   local updateLogo = CreateFrame("Frame", nil, button)
   button.updateLogo = updateLogo
   local tex = updateLogo:CreateTexture()
@@ -336,7 +292,6 @@ local function Constructor()
   updateLogo:SetFrameStrata(update:GetFrameStrata())
   updateLogo:SetFrameLevel(update:GetFrameLevel()-1)
 
-  -- Animation On Hover
   local animGroup = update:CreateAnimationGroup()
   update.animGroup = animGroup
 

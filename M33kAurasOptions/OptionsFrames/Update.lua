@@ -1627,6 +1627,26 @@ local methods = {
     end
   end,
   Import = function(self)
+    local function startImport()
+      if self.importTask or M33kAuras.IsImporting() then return end
+      local task = OptionsPrivate.Private:Async({name = "import"}, function()
+        self:ImportImpl()
+      end)
+      self.importTask = task
+      task:Finally(function()
+        self.importTask = nil
+        -- Successful imports already restored controls before closing the dialog.
+        -- Failures and cancellation must also release the options refresh guard.
+        if self.importInProgress then
+          self.importInProgress = nil
+          OptionsPrivate.Private.SetImporting(false)
+          self.viewCodeButton:SetEnabled(true)
+          self.importButton:SetEnabled(true)
+          self.closeButton:SetEnabled(true)
+          OptionsPrivate.SortDisplayButtons(nil, true)
+        end
+      end)
+    end
     if (M33kAuras.IsClassicEra() and C_GameRules.IsHardcoreActive())
       or (M33kAuras.IsForever() and C_GameRules.IsGameRuleActive(Enum.GameRule.HardcoreRuleset))
     then
@@ -1640,18 +1660,12 @@ local methods = {
         OnHide = function(self)
           self.text:SetFontObject(GameFontNormal)
         end,
-        OnAccept = function()
-          OptionsPrivate.Private:Async({name = "import"}, function()
-            self:ImportImpl()
-          end)
-        end,
+        OnAccept = startImport,
       }
       StaticPopup_Show("M33kAuras_CONFIRM_IMPORT_HARDCORE")
       return
     end
-    OptionsPrivate.Private:Async({name = "import"}, function()
-      self:ImportImpl()
-    end)
+    startImport()
   end,
   ImportImpl = function(self)
     local pendingData = self.pendingData
@@ -1661,6 +1675,7 @@ local methods = {
     self.importButton:SetEnabled(false)
     self.closeButton:SetEnabled(false)
     self.viewCodeButton:SetEnabled(false)
+    self.importInProgress = true
     OptionsPrivate.Private.SetImporting(true)
     coroutine.yield(10, "init")
     -- Adjust UI
@@ -1845,9 +1860,11 @@ local methods = {
     end
     coroutine.yield(0.1, "winding down")
     OptionsPrivate.Private.SetImporting(false)
+    OptionsPrivate.SortDisplayButtons(nil, true)
     self.viewCodeButton:SetEnabled(true)
     self.importButton:SetEnabled(true)
     self.closeButton:SetEnabled(true)
+    self.importInProgress = nil
     OptionsPrivate.Private.callbacks:Fire("Import")
 
     self:Close(true, pendingPickData.id)
@@ -2056,7 +2073,7 @@ local methods = {
       data.authorMode = nil
       M33kAuras.Add(data)
       table.insert(copies, {uid = uid, data = CopyTable(data), source = "update"})
-      local button = OptionsPrivate.GetDisplayButton(data.id)
+      local button = OptionsPrivate.GetDisplayEntry(data.id)
       button:SetData(data)
       if (data.parent) then
         local parentIsDynamicGroup = structureUidMap:GetParentIsDynamicGroup(uid)
@@ -2080,7 +2097,7 @@ local methods = {
     for i = #phase2Order, 1, -1 do
       local uid = phase2Order[i]
       local data = OptionsPrivate.Private.GetDataByUID(uid)
-      local displayButton = OptionsPrivate.GetDisplayButton(data.id)
+      local displayButton = OptionsPrivate.GetDisplayEntry(data.id)
       displayButton:UpdateOffset()
     end
   end,
@@ -2118,7 +2135,7 @@ local methods = {
       M33kAuras.Add(data)
       table.insert(copies, {uid = uid, data = CopyTable(data), source = "import"})
 
-      local button = OptionsPrivate.GetDisplayButton(data.id)
+      local button = OptionsPrivate.GetDisplayEntry(data.id)
       button:SetData(data)
       if (data.parent) then
         local parentIsDynamicGroup = uidMap:GetParentIsDynamicGroup(uid)
@@ -2141,7 +2158,7 @@ local methods = {
     for i = #phase2Order, 1, -1 do
       local uid = phase2Order[i]
       local data = OptionsPrivate.Private.GetDataByUID(uid)
-      local displayButton = OptionsPrivate.GetDisplayButton(data.id)
+      local displayButton = OptionsPrivate.GetDisplayEntry(data.id)
       displayButton:UpdateOffset()
     end
 
