@@ -1,7 +1,6 @@
 if not M33kAuras.IsLibsOK() then return end
 local _, OptionsPrivate = ...
 local L = M33kAuras.L
-local LibDD = LibStub:GetLibrary("LibUIDropDownMenu-4.0")
 local tinsert, tremove = table.insert, table.remove
 local select, pairs, type = select, pairs, type
 local error = error
@@ -70,161 +69,36 @@ local function copyAuraPart(source, destination, part)
 
 end
 
-local function CopyToClipboard(part, description)
-  clipboard.part = part;
-  clipboard.pasteText = description;
-  clipboard.source = CopyTable(clipboard.current);
+function OptionsPrivate.CopyDisplayButtonSettings(data, part, description)
+  clipboard.part = part
+  clipboard.pasteText = description
+  clipboard.source = CopyTable(data)
 end
 
-clipboard.pasteMenuEntry = {
-  text = nil, -- Hidden by default
-  notCheckable = true,
-  func = function()
-    if (not IsRegionAGroup(clipboard.source) and IsRegionAGroup(clipboard.current)) then
-      -- Copy from a single aura to a group => paste it to each individual aura
-      for child in OptionsPrivate.Private.TraverseLeafs(clipboard.current) do
-        copyAuraPart(clipboard.source, child, clipboard.part);
-        M33kAuras.Add(child)
-        M33kAuras.ClearAndUpdateOptions(child.id)
-      end
-    else
-      copyAuraPart(clipboard.source, clipboard.current, clipboard.part);
-      M33kAuras.Add(clipboard.current)
-      M33kAuras.ClearAndUpdateOptions(clipboard.current.id)
+function OptionsPrivate.GetDisplayButtonPasteText(data)
+  if IsRegionAGroup(clipboard.source) and not IsRegionAGroup(data) then return end
+  return clipboard.pasteText
+end
+
+function OptionsPrivate.PasteDisplayButtonSettings(data)
+  if not OptionsPrivate.GetDisplayButtonPasteText(data) then return end
+  if not IsRegionAGroup(clipboard.source) and IsRegionAGroup(data) then
+    for child in OptionsPrivate.Private.TraverseLeafs(data) do
+      copyAuraPart(clipboard.source, child, clipboard.part)
+      M33kAuras.Add(child)
+      M33kAuras.ClearAndUpdateOptions(child.id)
     end
-
-    M33kAuras.FillOptions()
-    OptionsPrivate.Private.ScanForLoads({[clipboard.current.id] = true});
-    OptionsPrivate.SortDisplayButtons(nil, true);
-    M33kAuras.PickDisplay(clipboard.current.id);
-    M33kAuras.UpdateThumbnail(clipboard.current.id);
-    M33kAuras.ClearAndUpdateOptions(clipboard.current.id);
-  end
-}
-
-clipboard.copyEverythingEntry = {
-  text = L["Everything"],
-  notCheckable = true,
-  func = function()
-    LibDD:CloseDropDownMenus()
-    CopyToClipboard("all", L["Paste Settings"])
-  end
-};
-
-clipboard.copyGroupEntry = {
-  text = L["Group"],
-  notCheckable = true,
-  func = function()
-    LibDD:CloseDropDownMenus()
-    CopyToClipboard("display", L["Paste Group Settings"])
-  end
-};
-
-clipboard.copyDisplayEntry = {
-  text = L["Display"],
-  notCheckable = true,
-  func = function()
-    LibDD:CloseDropDownMenus()
-    CopyToClipboard("display", L["Paste Display Settings"])
-  end
-};
-
-clipboard.copyTriggerEntry = {
-  text = L["Trigger"],
-  notCheckable = true,
-  func = function()
-    LibDD:CloseDropDownMenus()
-    CopyToClipboard("trigger", L["Paste Trigger Settings"])
-  end
-};
-
-clipboard.copyConditionsEntry = {
-  text = L["Conditions"],
-  notCheckable = true,
-  func = function()
-    LibDD:CloseDropDownMenus()
-    CopyToClipboard("condition", L["Paste Condition Settings"])
-  end
-};
-
-clipboard.copyLoadEntry = {
-  text = L["Load"],
-  notCheckable = true,
-  func = function()
-    LibDD:CloseDropDownMenus()
-    CopyToClipboard("load", L["Paste Load Settings"])
-  end
-};
-
-clipboard.copyActionsEntry = {
-  text = L["Actions"],
-  notCheckable = true,
-  func = function()
-    LibDD:CloseDropDownMenus()
-    CopyToClipboard("action", L["Paste Action Settings"])
-  end
-};
-
-clipboard.copyAnimationsEntry = {
-  text = L["Animations"],
-  notCheckable = true,
-  func = function()
-    LibDD:CloseDropDownMenus()
-    CopyToClipboard("animation", L["Paste Animations Settings"])
-  end
-};
-
-clipboard.copyAuthorOptionsEntry = {
-  text = L["Author Options"],
-  notCheckable = true,
-  func = function()
-    LibDD:CloseDropDownMenus()
-    CopyToClipboard("authorOptions", L["Paste Author Options Settings"])
-  end
-};
-
-clipboard.copyUserConfigEntry = {
-  text = L["Custom Configuration"],
-  notCheckable = true,
-  func = function()
-    LibDD:CloseDropDownMenus()
-    CopyToClipboard("config", L["Paste Custom Configuration"])
-  end
-};
-
-local function UpdateClipboardMenuEntry(data)
-  clipboard.current = data;
-
-  if (IsRegionAGroup(clipboard.source) and not IsRegionAGroup(clipboard.current)) then
-    -- Don't copy from a group to a non group
-    clipboard.pasteMenuEntry.text = nil;
   else
-    clipboard.pasteMenuEntry.text = clipboard.pasteText;
+    copyAuraPart(clipboard.source, data, clipboard.part)
+    M33kAuras.Add(data)
+    M33kAuras.ClearAndUpdateOptions(data.id)
   end
-
-  if (IsRegionAGroup(clipboard.current)) then
-    clipboard.copyEverythingEntry.text = nil;
-    clipboard.copyDisplayEntry.text = nil;
-    clipboard.copyTriggerEntry.text = nil;
-    clipboard.copyConditionsEntry.text = nil;
-    clipboard.copyLoadEntry.text = nil;
-    clipboard.copyActionsEntry.text = nil;
-    clipboard.copyAnimationsEntry.text = nil;
-    clipboard.copyAuthorOptionsEntry.text = nil;
-    clipboard.copyUserConfigEntry.text = nil;
-    clipboard.copyGroupEntry.text = L["Group"];
-  else
-    clipboard.copyEverythingEntry.text = L["Everything"];
-    clipboard.copyDisplayEntry.text = L["Display"];
-    clipboard.copyTriggerEntry.text = L["Trigger"];
-    clipboard.copyConditionsEntry.text = L["Conditions"];
-    clipboard.copyLoadEntry.text = L["Load"];
-    clipboard.copyActionsEntry.text = L["Actions"];
-    clipboard.copyAnimationsEntry.text = L["Animations"];
-    clipboard.copyAuthorOptionsEntry.text = L["Author Options"];
-    clipboard.copyUserConfigEntry.text = L["Custom Configuration"];
-    clipboard.copyGroupEntry.text = nil;
-  end
+  M33kAuras.FillOptions()
+  OptionsPrivate.Private.ScanForLoads({[data.id] = true})
+  OptionsPrivate.SortDisplayButtons()
+  M33kAuras.PickDisplay(data.id)
+  M33kAuras.UpdateThumbnail(data.id)
+  M33kAuras.ClearAndUpdateOptions(data.id)
 end
 
 local function ensure(t, k, v)
@@ -444,7 +318,7 @@ function OptionsPrivate.InitializeDisplayEntry(self)
       else
         if(mouseButton == "RightButton") then
           GameTooltip:Hide();
-          OptionsPrivate.OpenDisplayEntryMenu(self)
+          OptionsPrivate.OpenDisplayButtonMenu(self)
         else
           if (OptionsPrivate.IsDisplayPicked(self.data.id)) then
             OptionsPrivate.ClearPicks();
@@ -666,119 +540,6 @@ function OptionsPrivate.InitializeDisplayEntry(self)
       end
     end
 
-    local copyEntries = {};
-    tinsert(copyEntries, clipboard.copyEverythingEntry);
-    tinsert(copyEntries, clipboard.copyGroupEntry);
-    tinsert(copyEntries, clipboard.copyDisplayEntry);
-    tinsert(copyEntries, clipboard.copyTriggerEntry);
-    tinsert(copyEntries, clipboard.copyConditionsEntry);
-    tinsert(copyEntries, clipboard.copyLoadEntry);
-    tinsert(copyEntries, clipboard.copyActionsEntry);
-    tinsert(copyEntries, clipboard.copyAnimationsEntry);
-    tinsert(copyEntries, clipboard.copyAuthorOptionsEntry);
-    tinsert(copyEntries, clipboard.copyUserConfigEntry);
-
-    self.menu = {
-      {
-        text = L["Rename"],
-        notCheckable = true,
-        func = self.callbacks.OnRenameClick
-      },
-      {
-        text = L["Copy settings..."],
-        notCheckable = true,
-        hasArrow = true,
-        menuList = copyEntries;
-      },
-    };
-
-    tinsert(self.menu, clipboard.pasteMenuEntry);
-
-    if (not self.data.controlledChildren) then
-      local convertMenu = {};
-      for regionType, regionData in pairs(OptionsPrivate.Private.regionOptions) do
-        if(regionType ~= "group" and regionType ~= "dynamicgroup" and regionType ~= self.data.regionType) then
-          tinsert(convertMenu, {
-            text = regionData.displayName,
-            notCheckable = true,
-            func = function()
-              OptionsPrivate.ConvertDisplay(self.data, regionType);
-              LibDD:CloseDropDownMenus()
-            end
-          });
-        end
-      end
-      tinsert(self.menu, {
-        text = L["Convert to..."],
-        notCheckable = true,
-        hasArrow = true,
-        menuList = convertMenu
-      });
-    end
-
-    tinsert(self.menu, {
-      text = L["Duplicate"],
-      notCheckable = true,
-      func = self.callbacks.OnDuplicateClick
-    });
-
-    tinsert(self.menu, {
-      text = L["Export..."],
-      notCheckable = true,
-      func = function() OptionsPrivate.ExportToString(self.data.id) end
-    });
-    tinsert(self.menu, {
-      text = L["Export debug table..."],
-      notCheckable = true,
-      func = function() OptionsPrivate.ExportToTable(self.data.id) end
-    });
-
-
-    tinsert(self.menu, {
-      text = " ",
-      notClickable = true,
-      notCheckable = true,
-    });
-    if not self.data.controlledChildren then
-      tinsert(self.menu, {
-        text = L["Delete"],
-        notCheckable = true,
-        func = self.callbacks.OnDeleteClick
-      });
-    end
-
-    if (self.data.controlledChildren) then
-      tinsert(self.menu, {
-        text = L["Delete children and group"],
-        notCheckable = true,
-        func = self.callbacks.OnDeleteAllClick
-      });
-    end
-    tinsert(self.menu, {
-      text = " ",
-      notClickable = true,
-      notCheckable = true,
-    });
-    tinsert(self.menu, {
-      text = L["Close"],
-      notCheckable = true,
-      func = function() LibDD:CloseDropDownMenus() end
-    });
-end
-
-function OptionsPrivate.OpenDisplayEntryMenu(entry)
-  if not entry.row then return end
-  local multiple = OptionsPrivate.IsDisplayPicked(entry.data.id) and OptionsPrivate.IsPickedMultiple()
-  if not multiple and not OptionsPrivate.IsDisplayPicked(entry.data.id) then
-    M33kAuras.PickDisplay(entry.data.id, entry:IsGroup() and "group" or nil)
-  end
-  entry:Initialize()
-  UpdateClipboardMenuEntry(entry.data)
-  local menu = multiple and OptionsPrivate.MultipleDisplayTooltipMenu() or CopyTable(entry.menu)
-  -- Selection can rebuild the tree, so look up the current row again.
-  if entry.row then
-    LibDD:EasyMenu(menu, M33kAuras_DropDownMenu, entry.row.frame, 0, 0, "MENU")
-  end
 end
 
 local entryMethods = OptionsPrivate.DisplayEntryMethods

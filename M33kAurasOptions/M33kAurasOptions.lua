@@ -232,9 +232,9 @@ local function commonParent(controlledChildren)
   end
 end
 
-local function CreateNewGroupFromSelection(regionType, resetChildPositions)
+function OptionsPrivate.CreateGroupFromDisplayButtonSelection(ids, regionType, resetChildPositions)
   local data = {
-    id = OptionsPrivate.Private.FindUnusedId(tempGroup.controlledChildren[1].." Group"),
+    id = OptionsPrivate.Private.FindUnusedId(ids[1].." Group"),
     regionType = regionType,
   };
 
@@ -242,7 +242,7 @@ local function CreateNewGroupFromSelection(regionType, resetChildPositions)
   data.internalVersion = M33kAuras.InternalVersion()
   OptionsPrivate.Private.validate(data, OptionsPrivate.Private.regionTypes[regionType].default);
 
-  local parent, targetIndex = commonParent(tempGroup.controlledChildren)
+  local parent, targetIndex = commonParent(ids)
 
   if (parent) then
     local parentData = M33kAuras.GetData(parent)
@@ -265,7 +265,7 @@ local function CreateNewGroupFromSelection(regionType, resetChildPositions)
     M33kAuras.NewDisplayButton(data);
   end
 
-  for index, childId in pairs(tempGroup.controlledChildren) do
+  for index, childId in pairs(ids) do
     local childData = M33kAuras.GetData(childId);
     local childButton = OptionsPrivate.GetDisplayEntry(childId)
     local oldParent = childData.parent
@@ -309,104 +309,23 @@ local function CreateNewGroupFromSelection(regionType, resetChildPositions)
   end
 end
 
-function OptionsPrivate.MultipleDisplayTooltipMenu()
-  local frame = frame;
-  local menu = {
-    {
-      text = L["Add to new Group"],
-      notCheckable = 1,
-      func = function()
-        CreateNewGroupFromSelection("group")
-      end
-    },
-    {
-      text = L["Add to new Dynamic Group"],
-      notCheckable = 1,
-      func = function()
-        CreateNewGroupFromSelection("dynamicgroup", true)
-      end
-    },
-    {
-      text = L["Duplicate All"],
-      notCheckable = 1,
-      func = function()
-        local duplicated = {};
-        for child in OptionsPrivate.Private.TraverseAllChildren(tempGroup) do
-          local newData = OptionsPrivate.DuplicateAura(child)
-          tinsert(duplicated, newData.id);
-        end
-
-        OptionsPrivate.ClearPicks();
-        frame:PickDisplayBatch(duplicated);
-      end
-    },
-    {
-      text = " ",
-      notCheckable = 1,
-      notClickable = 1
-    },
-    {
-      text = L["Delete all"],
-      notCheckable = 1,
-      func = function()
-        local toDelete = {};
-        local parents = {};
-        for child in OptionsPrivate.Private.TraverseAllChildren(tempGroup) do
-          tinsert(toDelete, child)
-          addParents(parents, child)
-        end
-        OptionsPrivate.ConfirmDelete(toDelete, parents)
-      end
-    },
-    {
-      text = " ",
-      notClickable = 1,
-      notCheckable = 1,
-    },
-    {
-      text = L["Close"],
-      notCheckable = 1,
-      func = function() M33kAuras_DropDownMenu:Hide() end
-    }
-  };
-
-  local anyGroup = false;
-  local allSameParent = true
-  local commonParent = nil
-  local first = true
-  for _, id in pairs(tempGroup.controlledChildren) do
-    local childData = M33kAuras.GetData(id);
-    if(childData and childData.controlledChildren) then
-      anyGroup = true;
-    end
-
-    if (first) then
-      commonParent = childData.parent
-      first = false
-    elseif childData.parent ~= commonParent then
-      allSameParent = false
-    end
+function OptionsPrivate.DuplicateDisplayButtonSelection(ids)
+  local duplicated = {}
+  for child in OptionsPrivate.Private.TraverseAllChildren({controlledChildren = ids}) do
+    local data = OptionsPrivate.DuplicateAura(child)
+    tinsert(duplicated, data.id)
   end
+  OptionsPrivate.ClearPicks()
+  frame:PickDisplayBatch(duplicated)
+end
 
-  if(anyGroup) then
-    -- Disable "Add to New Dynamic Group"
-    menu[2].notClickable = 1;
-    menu[2].text = "|cFF777777"..menu[2].text;
+function OptionsPrivate.DeleteDisplayButtonSelection(ids)
+  local toDelete, parents = {}, {}
+  for child in OptionsPrivate.Private.TraverseAllChildren({controlledChildren = ids}) do
+    tinsert(toDelete, child)
+    addParents(parents, child)
   end
-
-  -- Also disable Add to New Dynamic Group/Group if that would create
-  -- a group inside a dynamic group
-  if (allSameParent and commonParent) then
-    local parentData = M33kAuras.GetData(commonParent);
-    if (parentData and parentData.regionType == "dynamicgroup") then
-      menu[1].notClickable = 1;
-      menu[1].text = "|cFF777777"..menu[1].text;
-      menu[2].notClickable = 1;
-      menu[2].text = "|cFF777777"..menu[1].text;
-    end
-  end
-
-  return menu;
+  OptionsPrivate.ConfirmDelete(toDelete, parents)
 end
 
 StaticPopupDialogs["M33kAuras_CONFIRM_DELETE"] = {
@@ -469,6 +388,7 @@ local function AfterScanForLoads()
 end
 
 local function OnAboutToDelete(event, uid, id, parentUid, parentId)
+  OptionsPrivate.CloseDisplayButtonMenu()
   local data = OptionsPrivate.Private.GetDataByUID(uid)
   if(data.controlledChildren) then
     for index, childId in pairs(data.controlledChildren) do
@@ -498,6 +418,7 @@ local function OnAboutToDelete(event, uid, id, parentUid, parentId)
 end
 
 local function OnRename(event, uid, oldid, newid)
+  OptionsPrivate.CloseDisplayButtonMenu()
   local data = OptionsPrivate.Private.GetDataByUID(uid)
 
   if not data then return end
@@ -1055,6 +976,7 @@ end
 function OptionsPrivate.Drop(mainAura, target, action, area)
   if OptionsPrivate.movingAuras then return end
   OptionsPrivate.EndAuraDrag()
+  OptionsPrivate.CloseDisplayButtonMenu()
   M33kAuras_DropDownMenu:Hide()
   if not target or not action then OptionsPrivate.DragReset(); return end
 
@@ -1096,6 +1018,7 @@ end
 
 function OptionsPrivate.StartDrag(mainAura)
   if OptionsPrivate.movingAuras or M33kAuras.IsImporting() then return end
+  OptionsPrivate.CloseDisplayButtonMenu()
   M33kAuras_DropDownMenu:Hide()
 
   if (frame.pickedDisplay == tempGroup and #tempGroup.controlledChildren > 0) then

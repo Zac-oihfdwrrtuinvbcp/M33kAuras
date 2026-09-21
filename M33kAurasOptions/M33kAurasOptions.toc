@@ -13,7 +13,7 @@
 ## Globe-Main: M33kAuras
 ## DefaultState: Enabled
 ## LoadOnDemand: 1
-## Dependencies: M33kAuras
+## Dependencies: M33kAuras, Blizzard_Menu
 ## SavedVariables: M33kAurasOptionsSaved
 
 embeds.xml
@@ -63,6 +63,7 @@ AuraListModel.lua
 AuraList.lua
 AuraListThumbnail.lua
 DisplayEntryActions.lua
+DisplayButtonMenu.lua
 M33kAurasOptions.lua
 ConditionOptions.lua
 AuthorOptions.lua

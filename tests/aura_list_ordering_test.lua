@@ -69,7 +69,10 @@ end
 local function groupSelection(ids,kind)
   f.frame:ClearPicks()
   f.frame:PickDisplayBatch(ids)
-  local menu=options.MultipleDisplayTooltipMenu()
+  local menu=f.menuDescription()
+  local uids={}
+  for _,id in ipairs(ids) do uids[#uids+1]=M33kAuras.GetData(id).uid end
+  options.BuildDisplayButtonMenu(menu,{auraId=ids[1],auraUID=uids[1],selectedIds=ids,selectedUIDs=uids})
   menu[kind=="dynamicgroup" and 2 or 1].func()
   f:flush()
   return M33kAuras.GetData(M33kAuras.GetData(ids[1]).parent)

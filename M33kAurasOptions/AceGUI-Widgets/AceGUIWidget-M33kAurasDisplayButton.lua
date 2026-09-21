@@ -471,7 +471,6 @@ local methods = {
     self.frame.description = nil
     self.entry = nil
     self.callbacks = nil
-    self.menu = nil
     self.grouping = nil
     self.dragging = nil
     self.iconRegion = nil

@@ -435,6 +435,7 @@ function OptionsPrivate.CreateAuraList(parent)
     box:AdjustPointsOffset(offset, offset)
     return true
   end
+  box:HookScript("OnHide", function() OptionsPrivate.CloseDisplayButtonMenu() end)
   box:HookScript("OnShow", function(self)
     validateRect()
     self:FullUpdate(true)
@@ -476,6 +477,7 @@ function OptionsPrivate.RefreshAuraList(filter)
   if OptionsPrivate.IsAuraListBusy() then frame.needsSort = true; return end
   refreshing = true
   local ok = xpcall(function()
+    OptionsPrivate.CloseDisplayButtonMenu()
     model:Sync(M33kAurasSaved.displays, OptionsPrivate.Private.loaded, filter)
     local provider = CreateTreeDataProvider()
     companionSections(frame, provider)
@@ -562,6 +564,7 @@ end
 local dragGhost, dragEntry
 function OptionsPrivate.StartAuraDrag(entry)
   if dragEntry then return end
+  OptionsPrivate.CloseDisplayButtonMenu()
   dragEntry = entry
   if not dragGhost then
     dragGhost = CreateFrame("Frame", nil, UIParent, "BackdropTemplateM33kAuras")

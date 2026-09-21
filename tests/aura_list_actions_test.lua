@@ -83,12 +83,12 @@ local function menuItem(menu,text)
   error("missing menu entry "..text)
 end
 options.RevealDisplay("A")
-options.OpenDisplayEntryMenu(a)
+options.OpenDisplayButtonMenu(a)
 a.data.triggers={marker={value=42}}
 menuItem(menuItem(f.menu,"Copy settings...").menuList,"Trigger").func()
 a.data.triggers.marker.value=99
 options.RevealDisplay("Root")
-options.OpenDisplayEntryMenu(root)
+options.OpenDisplayButtonMenu(root)
 menuItem(f.menu,"Paste Trigger Settings").func()
 T.expect(M33kAuras.GetData("B").triggers.marker.value==42 and M33kAuras.GetData("C").triggers.marker.value==42,
   "clipboard captures a snapshot and pastes triggers into nested leaf auras")

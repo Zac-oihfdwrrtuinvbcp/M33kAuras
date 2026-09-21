@@ -256,10 +256,12 @@ function M.install(T)
   options.SortDisplayButtons=function(filter) options.RefreshAuraList(filter or "") end
   options.IsPickedMultiple=function() return false end
   options.IsDisplayPicked=function(id) return options.displayEntries[id] and options.displayEntries[id].picked end
+  require("display_button_menu_stubs").install(fixture)
   T.loadAddonFile("M33kAurasOptions/AuraListModel.lua","M33kAurasOptions",options)
   T.loadAddonFile("M33kAurasOptions/AuraList.lua","M33kAurasOptions",options)
   T.loadAddonFile("M33kAurasOptions/AuraListThumbnail.lua","M33kAurasOptions",options)
   T.loadAddonFile("M33kAurasOptions/DisplayEntryActions.lua","M33kAurasOptions",options)
+  T.loadAddonFile("M33kAurasOptions/DisplayButtonMenu.lua","M33kAurasOptions",options)
   T.loadAddonFile("M33kAurasOptions/AceGUI-Widgets/AceGUIWidget-M33kAurasDisplayButton.lua","M33kAurasOptions",options)
   T.loadAddonFile("M33kAurasOptions/AceGUI-Widgets/AceGUIWidget-M33kAurasLoadedHeaderButton.lua","M33kAurasOptions",options)
   for _,kind in ipairs({"Install","Update"}) do
