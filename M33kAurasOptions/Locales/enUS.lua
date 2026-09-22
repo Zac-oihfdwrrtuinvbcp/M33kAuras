@@ -969,3 +969,6 @@ M33kAuras will always run custom grow code if you include 'changed' in this list
 	L["Zoom In"] = "Zoom In"
 	L["Zoom Out"] = "Zoom Out"
 
+
+L["About M33kAuras"] = "About M33kAuras"
+L["Read about M33kAuras development, supported features, and current limitations."] = "Read about M33kAuras development, supported features, and current limitations."

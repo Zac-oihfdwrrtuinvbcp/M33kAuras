@@ -514,10 +514,16 @@ function OptionsPrivate.CreateFrame()
   documentationButton:SetParent(tipFrame)
   documentationButton:SetPoint("LEFT", tipFrame, "LEFT")
 
+  local aboutButton = addFooter(L["About M33kAuras"], [[Interface\AddOns\M33kAuras\Media\Textures\icon.blp]],
+            "https://github.com/m33shoq/M33kAuras/wiki/About-M33kAuras",
+            L["Read about M33kAuras development, supported features, and current limitations."])
+  aboutButton:SetParent(tipFrame)
+  aboutButton:SetPoint("LEFT", documentationButton, "RIGHT", footerSpacing, 0)
+
   local thanksButton = addFooter(L["Thanks"], [[Interface\AddOns\M33kAuras\Media\Textures\waheart.tga]],
                                  nil, thanksList, thanksListCJ, thanksListK, nil, 800)
   thanksButton:SetParent(tipFrame)
-  thanksButton:SetPoint("LEFT", documentationButton, "RIGHT", footerSpacing, 0)
+  thanksButton:SetPoint("LEFT", aboutButton, "RIGHT", footerSpacing, 0)
 
   if OptionsPrivate.changelog then
     local changelog
