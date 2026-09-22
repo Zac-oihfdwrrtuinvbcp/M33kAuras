@@ -19,7 +19,7 @@ function Thumbnail.Release(self)
   if not ok then
     -- The region owns its internal pool. We can hide its failed resource and
     -- finish releasing the row, but cannot safely return it to that pool.
-    pcall(thumbnail.Hide, thumbnail)
+    thumbnail:Hide()
     geterrorhandler()(err)
   end
 end
