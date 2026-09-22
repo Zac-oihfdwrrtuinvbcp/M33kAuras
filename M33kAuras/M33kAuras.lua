@@ -4977,10 +4977,10 @@ local function startStopTimers(id, cloneId, triggernum, state)
   end
 
   -- state.autoHide can be a timer, or a boolean
-  -- if it's a bool, for backwards compability we look at paused
+  -- Boolean auto-hide follows timed progress; a numeric timestamp is independent.
   local expirationTime
   if type(state.autoHide) == "boolean" then
-    if state.paused then
+    if state.progressType ~= "timed" or state.paused then
       stopAutoHideTimer(id, triggernum, cloneId)
       return
     else
