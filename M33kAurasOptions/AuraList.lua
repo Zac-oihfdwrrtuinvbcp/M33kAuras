@@ -416,12 +416,16 @@ end
 
 function OptionsPrivate.CreateAuraList(parent)
   local box = CreateFrame("Frame", nil, parent, "WowScrollBoxList")
-  box:SetPoint("TOPLEFT", 2, -2)
-  box:SetPoint("BOTTOMRIGHT", -18, 2)
+  box:SetPoint("TOPLEFT", 0, 0)
+  box:SetPoint("BOTTOMRIGHT", -18, 0)
   local bar = CreateFrame("EventFrame", nil, parent, "MinimalScrollBar")
   bar:SetPoint("TOPRIGHT", -3, -2)
   bar:SetPoint("BOTTOMRIGHT", -3, 2)
   local view = CreateScrollBoxListTreeListView(8, 0, 0, 0, 0, 2)
+  view:SetElementIndentCalculator(function(node)
+    -- Section headers are structural parents, not aura groups.
+    return math.max(0, node:GetDepth() - 2) * 8
+  end)
   view:SetElementInitializer("Frame", OptionsPrivate.BindAuraListRow)
   view:SetElementExtentCalculator(function(_, node) return node:GetData().height end)
   view:SetElementResetter(OptionsPrivate.ReleaseAuraListRow)

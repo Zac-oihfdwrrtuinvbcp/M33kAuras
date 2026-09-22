@@ -155,6 +155,7 @@ function M.install(T)
     function view:SetElementInitializer(_,init) self.init=init end
     function view:SetElementResetter(reset) self.reset=reset end
     function view:SetElementExtentCalculator(fn) self.extent=fn end
+    function view:SetElementIndentCalculator(fn) self.indent=fn end
     function view:Render(first,count)
       for _,container in ipairs(self.containers) do self.reset(container) end
       self.containers={};self.first=first or self.first;self.count=count or self.count
