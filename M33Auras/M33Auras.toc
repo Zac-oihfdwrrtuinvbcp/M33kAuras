@@ -1,8 +1,0 @@
-## Interface: 120100
-## Title: M33kAuras Settings Migration 2
-## Author: m33shoq
-## Version: @project-version@
-## IconTexture: Interface\AddOns\M33kAuras\Media\Textures\icon.blp
-## SavedVariables: M33AurasSaved
-## LoadSavedVariablesFirst: 1
-## LoadOnDemand: 1

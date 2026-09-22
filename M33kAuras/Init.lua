@@ -638,47 +638,34 @@ end
 ---@type M33kAurasSaved
 M33kAurasSaved = M33kAurasSaved or {};
 if (not next(M33kAurasSaved) or not (M33kAurasSaved and M33kAurasSaved.displays and next(M33kAurasSaved.displays))) and not M33kAurasSaved.migrationDisabled then
-  C_AddOns.EnableAddOn("M33Auras")
-  C_AddOns.LoadAddOn("M33Auras")
-  if M33AurasSaved then
-    M33kAurasSaved = CopyTable(M33AurasSaved)
+  C_AddOns.EnableAddOn("WeakAuras")
+  C_AddOns.LoadAddOn("WeakAuras")
+  if WeakAurasSaved then
+    M33kAurasSaved = CopyTable(WeakAurasSaved)
     M33kAurasSaved.m33kMigrated = true
-    C_AddOns.DisableAddOn("M33Auras")
     C_AddOns.DisableAddOn("WeakAuras")
-  else
-    C_AddOns.EnableAddOn("WeakAuras")
-    C_AddOns.LoadAddOn("WeakAuras")
-    if WeakAurasSaved then
-      M33kAurasSaved = CopyTable(WeakAurasSaved)
-      M33kAurasSaved.m33kMigrated = true
-      C_AddOns.DisableAddOn("M33Auras")
-      C_AddOns.DisableAddOn("WeakAuras")
-    end
   end
 end
 if not M33kAurasSaved.m33kMigrated then
   if not M33kAurasSaved.migrationPromptCanceled then
-    C_AddOns.EnableAddOn("M33Auras")
-    C_AddOns.LoadAddOn("M33Auras")
+    C_AddOns.EnableAddOn("WeakAuras")
+    C_AddOns.LoadAddOn("WeakAuras")
   end
-  local foundM33kAuras = false
-  if type(M33AurasSaved) == "table" and type(M33AurasSaved.displays) == "table" and next(M33AurasSaved.displays) then
+  if type(WeakAurasSaved) == "table" and type(WeakAurasSaved.displays) == "table" and next(WeakAurasSaved.displays) then
     libsAreOk = false
     StaticPopupDialogs["M33kAuras_MIGRATION_PROMPT"] = {
-      text = "M33kAuras detected data from M33Auras. Do you want to migrate your settings from M33Auras to M33kAuras? This will delete existing settings for M33kAuras and cannot be undone.\n\nIf you will change your mind enable \"M33kAuras Settings Migration 2\" in addons list to see this prompt again.",
+      text = "M33kAuras detected data from WeakAuras. Do you want to migrate your settings from WeakAuras to M33kAuras? This will delete existing settings for M33kAuras and cannot be undone.\n\nIf you will change your mind enable \"M33kAuras Settings Migration\" in addons list to see this prompt again.",
       button1 = YES or "Yes",
       button2 = NO or "No",
       showAlert = true,
       OnAccept = function()
-        M33kAurasSaved = CopyTable(M33AurasSaved)
+        M33kAurasSaved = CopyTable(WeakAurasSaved)
         M33kAurasSaved.m33kMigrated = true
-        C_AddOns.DisableAddOn("M33Auras")
         C_AddOns.DisableAddOn("WeakAuras")
         C_UI.Reload()
       end,
       OnCancel = function()
         M33kAurasSaved.migrationPromptCanceled = true
-        C_AddOns.DisableAddOn("M33Auras")
         C_AddOns.DisableAddOn("WeakAuras")
         C_UI.Reload()
       end,
@@ -688,45 +675,8 @@ if not M33kAurasSaved.m33kMigrated then
       preferredIndex = 5,
     }
     StaticPopup_Show("M33kAuras_MIGRATION_PROMPT")
-    foundM33kAuras = true
-  elseif not M33AurasSaved then
-    C_AddOns.DisableAddOn("M33Auras")
-  end
-
-  if not foundM33kAuras then
-    if not M33kAurasSaved.migrationPromptCanceled then
-      C_AddOns.EnableAddOn("WeakAuras")
-      C_AddOns.LoadAddOn("WeakAuras")
-    end
-    if type(WeakAurasSaved) == "table" and type(WeakAurasSaved.displays) == "table" and next(WeakAurasSaved.displays) then
-      libsAreOk = false
-      StaticPopupDialogs["M33kAuras_MIGRATION_PROMPT"] = {
-        text = "M33kAuras detected data from WeakAuras. Do you want to migrate your settings from WeakAuras to M33kAuras? This will delete existing settings for M33kAuras and cannot be undone.\n\nIf you will change your mind enable \"M33kAuras Settings Migration\" in addons list to see this prompt again.",
-        button1 = YES or "Yes",
-        button2 = NO or "No",
-        showAlert = true,
-        OnAccept = function()
-          M33kAurasSaved = CopyTable(WeakAurasSaved)
-          M33kAurasSaved.m33Migrated = true
-          C_AddOns.DisableAddOn("M33Auras")
-          C_AddOns.DisableAddOn("WeakAuras")
-          C_UI.Reload()
-        end,
-        OnCancel = function()
-          M33kAurasSaved.migrationPromptCanceled = true
-          C_AddOns.DisableAddOn("M33Auras")
-          C_AddOns.DisableAddOn("WeakAuras")
-          C_UI.Reload()
-        end,
-        timeout = 0,
-        whileDead = true,
-        hideOnEscape = false,
-        preferredIndex = 5,
-      }
-      StaticPopup_Show("M33kAuras_MIGRATION_PROMPT")
-    elseif not WeakAurasSaved then
-      C_AddOns.DisableAddOn("WeakAuras")
-    end
+  elseif not WeakAurasSaved then
+    C_AddOns.DisableAddOn("WeakAuras")
   end
 end
 
@@ -805,7 +755,7 @@ end
 
 function M33KAURAS_WIPE_ALL_SETTINGS()
   StaticPopupDialogs["M33KAURAS_WIPE_ALL_SETTINGS"] = {
-      text = "Are you sure you want to wipe all settings for M33kAuras and disable settings migration from WeakAuras and M33Auras?\n\nThis action cannot be undone.",
+      text = "Are you sure you want to wipe all settings for M33kAuras and disable settings migration from WeakAuras?\n\nThis action cannot be undone.",
       button1 = ACCEPT or "Yes",
       button2 = NO or "No",
       showAlert = true,
