@@ -1245,7 +1245,7 @@ local function PositionOptions(id, data, _, hideWidthHeight, disableSelfPoint, g
   local positionOptions = {
     __title = L["Position and Size Settings"],
     __order = metaOrder,
-    __collapsed = true,
+    __collapsed = false,
     width = {
       type = "range",
       control = "M33kAurasSpinBox",
