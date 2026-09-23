@@ -2526,6 +2526,7 @@ function Private.Modernize(data, oldSnapshot)
   end
 
   data.internalVersion = max(data.internalVersion or 0, M33kAuras.InternalVersion())
+  data.internalVersionM33kAuras = data.internalVersion
 end
 
 --- Returns true if Modernize will use data from last snapshot before a new one is done

@@ -368,7 +368,8 @@ function Private.DisplayToString(id, forChat)
       m = "d",
       d = transmitData,
       v = version,
-      s = versionString
+      s = versionString,
+      isM33kAuras = true,
     };
     if(data.controlledChildren) then
       transmit.c = {};
