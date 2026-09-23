@@ -3125,33 +3125,31 @@ do
     return runeDuration;
   end
 
-  local GetSpellCharges = GetSpellCharges or function(id)
-    local chargeInfo = C_Spell.GetSpellCharges(id)
-    if not chargeInfo then return end
-    return chargeInfo.currentCharges, chargeInfo.maxCharges, chargeInfo.cooldownStartTime, chargeInfo.cooldownDuration, chargeInfo.chargeModRate
-  end
-  local GetSpellCount = GetSpellCount or C_Spell.GetSpellCastCount
+  local GetSpellCount = C_Spell.GetSpellCastCount
 
   ---@param id string
   ---@param runeDuration? number
   function M33kAuras.GetSpellCooldownUnified(id, runeDuration)
-    local startTimeCooldown, durationCooldown, enabled, modRate
-    if GetSpellCooldown then
-      startTimeCooldown, durationCooldown, enabled, modRate = GetSpellCooldown(id)
-      if type(enabled) == "number" then
-        enabled = enabled == 1 and true or false
-      end
-    else
-      local spellCooldownInfo = C_Spell.GetSpellCooldown(id);
-      if spellCooldownInfo then
-        startTimeCooldown = spellCooldownInfo.startTime
-        durationCooldown = spellCooldownInfo.duration
-        enabled = spellCooldownInfo.isEnabled
-        modRate = spellCooldownInfo.modRate
-      end
+    local startTimeCooldown, durationCooldown, enabled, modRate, isOnGCD
+    local spellCooldownInfo = C_Spell.GetSpellCooldown(id);
+    if spellCooldownInfo then
+      startTimeCooldown = spellCooldownInfo.startTime
+      durationCooldown = spellCooldownInfo.duration
+      enabled = spellCooldownInfo.isEnabled
+      modRate = spellCooldownInfo.modRate
+      isOnGCD = spellCooldownInfo.isOnGCD
     end
 
-    local charges, maxCharges, startTimeCharges, durationCharges, modRateCharges = GetSpellCharges(id);
+    local charges, maxCharges, startTimeCharges, durationCharges, modRateCharges, atMaxCharges
+    local chargeInfo = C_Spell.GetSpellCharges(id)
+    if chargeInfo then
+      charges = chargeInfo.currentCharges
+      maxCharges = chargeInfo.maxCharges
+      startTimeCharges = chargeInfo.cooldownStartTime
+      durationCharges = chargeInfo.cooldownDuration
+      modRateCharges = chargeInfo.chargeModRate
+      atMaxCharges = not chargeInfo.isActive
+    end
 
     startTimeCooldown = startTimeCooldown or 0
     durationCooldown = durationCooldown or 0
@@ -3168,7 +3166,9 @@ do
     local cooldownBecauseRune = false
     local startTime, duration, unifiedModRate = startTimeCooldown, durationCooldown, modRate
 
-    if not C_Secrets.ShouldSpellCooldownBeSecret(id) then
+    if C_Secrets.ShouldSpellCooldownBeSecret(id) then
+
+    else
       -- WORKAROUND: Sometimes the API returns very high bogus numbers causing client freezes, discard them here. CurseForge issue #1008
       if (durationCooldown > 604800) then
         durationCooldown = 0;
@@ -3222,12 +3222,7 @@ do
 
     local count = GetSpellCount(id)
 
-    local disabled
-    if issecretvalue(enabled) then
-      disabled = false
-    else
-      disabled = not enabled
-    end
+    local disabled = not enabled
 
     return charges, maxCharges, startTime, duration, unifiedCooldownBecauseRune,
            startTimeCooldown, durationCooldown, cooldownBecauseRune, startTimeCharges, durationCharges,

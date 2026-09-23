@@ -4755,7 +4755,7 @@ Private.event_prototypes = {
       {
         hidden = true,
         name = "isReady",
-        display = L["Is Ready (Best guess)"],
+        display = L["Is Ready"],
         init = 'isReady',
         store = true,
         test = "true",
