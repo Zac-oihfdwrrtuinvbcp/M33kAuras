@@ -396,7 +396,7 @@ local function GetBuffTriggerOptions(data, triggernum)
       type = "description",
       width = M33kAuras.doubleWidth,
       fontSize = "medium",
-      name = L["Auras can become secret during combat, encounters, Mythic+ runs, or PvP matches. Some auras are always secret or never secret."] .. "\n\n" .. L["This trigger cannot track secret auras. While restrictions are active, enter the auras you want to track in Name(s) or Exact Spell ID(s), even when using ignore filters. If several auras have the same name or spell ID, only one may be shown."],
+      name = L["Auras can become secret during combat, encounters, Mythic+ runs, or PvP matches. Some auras are explicitly made \"never secret\" by Blizzard."] .. "\n\n" .. L["This trigger cannot track secret auras. If you want to track \"never secret\" auras, you must fill Name(s) or Exact Spell ID(s), or trigger won't be able to find them. If several auras have the same name or spell ID, only one may be shown."],
       order = 11.17,
     },
     neverSecretSpells = {
@@ -477,7 +477,6 @@ local function GetBuffTriggerOptions(data, triggernum)
       hidden = function() return not (trigger.type == "aura2" and not trigger.useExactSpellId) end
     },
     useIgnoreName = {
-      desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["While aura restrictions are active, enter the auras you want to track in Name(s) or Exact Spell ID(s). Ignored entries only remove auras from that selection."],
       type = "toggle",
       name = L["Ignored Name(s)"],
       order = 32,
@@ -492,7 +491,6 @@ local function GetBuffTriggerOptions(data, triggernum)
       hidden = function() return not (trigger.type == "aura2" and not trigger.useIgnoreName and trigger.unit ~= "multi" and CanHaveMatchCheck(trigger)) end
     },
     useIgnoreExactSpellId = {
-      desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["While aura restrictions are active, enter the auras you want to track in Name(s) or Exact Spell ID(s). Ignored entries only remove auras from that selection."],
       type = "toggle",
       name = L["Ignored Exact Spell ID(s)"],
       width = M33kAuras.normalWidth - 0.2,
