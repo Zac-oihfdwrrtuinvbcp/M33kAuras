@@ -1237,7 +1237,15 @@ end
 
 function HandleEvent(frame, event, arg1, arg2, ...)
   Private.StartProfileSystem("generictrigger " .. event);
-  if event == "NAME_PLATE_UNIT_ADDED" then
+  if event == "ENCOUNTER_START" then
+    -- Record the encounter before closing options resumes and reloads auras.
+    Private.StartProfileSystem("load")
+    Private.ScanForLoads(nil, event, arg1, arg2, ...)
+    Private.StopProfileSystem("load")
+    if M33kAuras.IsOptionsOpen() then
+      M33kAuras.HideOptions(true)
+    end
+  elseif event == "NAME_PLATE_UNIT_ADDED" then
     nameplateExists[arg1] = true
   elseif event == "NAME_PLATE_UNIT_REMOVED" then
     nameplateExists[arg1] = false
@@ -1323,9 +1331,11 @@ local frame = CreateFrame("Frame");
 frame.unitFrames = {};
 Private.frames["M33kAuras Generic Trigger Frame"] = frame;
 frame:RegisterEvent("PLAYER_ENTERING_WORLD");
+frame:RegisterEvent("ENCOUNTER_START")
 frame:RegisterEvent("NAME_PLATE_UNIT_ADDED")
 frame:RegisterEvent("NAME_PLATE_UNIT_REMOVED")
 genericTriggerRegisteredEvents["PLAYER_ENTERING_WORLD"] = true;
+genericTriggerRegisteredEvents["ENCOUNTER_START"] = true
 genericTriggerRegisteredEvents["NAME_PLATE_UNIT_ADDED"] = true;
 genericTriggerRegisteredEvents["NAME_PLATE_UNIT_REMOVED"] = true;
 frame:SetScript("OnEvent", HandleEvent);

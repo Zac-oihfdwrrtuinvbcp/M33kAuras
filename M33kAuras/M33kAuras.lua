@@ -1941,7 +1941,7 @@ end
 local loadFrame = CreateFrame("Frame");
 Private.frames["Display Load Handling"] = loadFrame;
 
-loadFrame:RegisterEvent("ENCOUNTER_START");
+-- GenericTrigger handles ENCOUNTER_START so loads and options close precede trigger dispatch.
 loadFrame:RegisterEvent("ENCOUNTER_END");
 
 if M33kAuras.IsRetail() then

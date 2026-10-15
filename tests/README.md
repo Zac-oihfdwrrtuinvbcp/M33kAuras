@@ -1,6 +1,10 @@
 Run `lua5.1 tests/run.lua` or `luajit tests/run.lua` from the repository root.
 
 These regression tests load the real addon source with minimal WoW stubs.
+Encounter-start checks cover closing options before custom event and TSU triggers run,
+encounter and combat load conditions, original event arguments, single delivery, and reopening after both
+combat and the encounter end. Reopening checks include temporary combat drops, encounters without player
+combat, both encounter APIs, and delivering encounter-end events before options pause triggers again.
 They cover animation scheduling, sandbox lookups, nested aura environment activation, restricted aura lookups by name and ID,
 group rebuff recovery after releasing and returning or starting a ready check (visibility, alive filters, and buff counts),
 options validation, cooldown subscriptions and readiness events, raid assignments, group roles, talent caching, load conditions, talent triggers, taxi/vehicle conditions, PvP flags, ruleset migration, instance filters, restricted character stats, threat filters, and display-only health and absorb overlays with secret values.

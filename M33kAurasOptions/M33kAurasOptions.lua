@@ -14,6 +14,7 @@ local _G = _G
 
 -- WoW APIs
 local InCombatLockdown = InCombatLockdown
+local IsEncounterInProgress = C_InstanceEncounter and C_InstanceEncounter.IsEncounterInProgress or IsEncounterInProgress
 local CreateFrame = CreateFrame
 
 local AceGUI = LibStub("AceGUI-3.0")
@@ -154,10 +155,21 @@ local db;
 local odb;
 --- @type boolean?
 local reopenAfterCombat = false;
+
+local function TryReopenOptions()
+  if reopenAfterCombat and not InCombatLockdown() and not IsEncounterInProgress()
+    and not M33kAuras.CurrentEncounter
+  then
+    reopenAfterCombat = nil
+    M33kAuras.ShowOptions()
+  end
+end
+
 local loadedFrame = CreateFrame("Frame");
 loadedFrame:RegisterEvent("ADDON_LOADED");
 loadedFrame:RegisterEvent("PLAYER_REGEN_ENABLED");
 loadedFrame:RegisterEvent("PLAYER_REGEN_DISABLED");
+loadedFrame:RegisterEvent("ENCOUNTER_END")
 loadedFrame:SetScript("OnEvent", function(self, event, addon)
   if (event == "ADDON_LOADED") then
     if(addon == ADDON_NAME) then
@@ -188,15 +200,12 @@ loadedFrame:SetScript("OnEvent", function(self, event, addon)
       savedVars.odb = odb;
     end
   elseif (event == "PLAYER_REGEN_DISABLED") then
-    if(frame and frame:IsVisible()) then
-      reopenAfterCombat = true;
-      M33kAuras.HideOptions();
-    end
+    M33kAuras.HideOptions(true)
   elseif (event == "PLAYER_REGEN_ENABLED") then
-    if (reopenAfterCombat) then
-      reopenAfterCombat = nil;
-      M33kAuras.ShowOptions()
-    end
+    TryReopenOptions()
+  elseif event == "ENCOUNTER_END" and reopenAfterCombat then
+    -- Let custom triggers receive ENCOUNTER_END before reopening options pauses them.
+    C_Timer.After(0, TryReopenOptions)
   end
 end);
 
@@ -516,8 +525,12 @@ if not M33kAuras.ToggleOptions then
   end
 end
 
-function M33kAuras.HideOptions()
+---@param reopenOnCombatEnd? boolean
+function M33kAuras.HideOptions(reopenOnCombatEnd)
   if(frame) then
+    if reopenOnCombatEnd and frame:IsVisible() then
+      reopenAfterCombat = true
+    end
     frame:Hide()
   end
 end
