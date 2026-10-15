@@ -102,4 +102,40 @@ local result = forEach("target", "HARMFUL", 5, collect, false)
 T.expect(result == "enumerated" and calls[1] == "target" and calls[2] == "HARMFUL"
   and calls[3] == 5 and calls[4] == collect and calls[5] == false,
   "normal enumeration retains its arguments and return value")
+
+T.section("Arena specialization restrictions")
+local appliesStart = assert(source:find("local function TriggerInfoApplies", 1, true))
+local appliesEnd = assert(source:find("local function FormatAffectedUnaffected", appliesStart, true))
+local appliesSource = source:sub(appliesStart, appliesEnd - 1) .. "\nreturn TriggerInfoApplies"
+local secretSpec = newproxy(true)
+local spec, arenaIndex, specCalls = 71, nil, 0
+env.M33kAuras = { UnitIsPet = function() return false end }
+env.issecretvalue = function(value) return rawequal(value, secretSpec) end
+env.GetArenaOpponentSpec = function(index)
+  arenaIndex, specCalls = index, specCalls + 1
+  return spec
+end
+local applies = setfenv(assert(loadstring(appliesSource)), env)()
+local info = {
+  arenaSpec = setmetatable({ [71] = true }, {
+    __index = function(_, key)
+      assert(not rawequal(key, secretSpec), "secret specialization used as a table key")
+    end,
+  }),
+}
+T.expect(applies(info, "arena2") and arenaIndex == 2,
+  "readable matching specializations use the arena index")
+spec = 62
+T.expect(not applies(info, "arena2"), "readable unselected specializations do not match")
+spec = nil
+T.expect(not applies(info, "arena2"), "unavailable specializations do not match")
+spec = 0
+T.expect(not applies(info, "arena2"), "unknown specializations do not match")
+spec = secretSpec
+T.expect(not applies(info, "arena2"), "secret specializations do not reach the selection table")
+local before = specCalls
+T.expect(applies(info, "target") and specCalls == before,
+  "non-arena units do not query arena specializations")
+T.expect(applies({}, "arena2") and specCalls == before,
+  "unfiltered arena auras do not query secret specializations")
 T.finish()

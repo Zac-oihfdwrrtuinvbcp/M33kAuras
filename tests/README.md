@@ -6,6 +6,7 @@ encounter and combat load conditions, original event arguments, single delivery,
 combat and the encounter end. Reopening checks include temporary combat drops, encounters without player
 combat, both encounter APIs, and delivering encounter-end events before options pause triggers again.
 They cover animation scheduling, sandbox lookups, nested aura environment activation, restricted aura lookups by name and ID,
+arena specialization filters with secret values,
 group rebuff recovery after releasing and returning or starting a ready check (visibility, alive filters, and buff counts),
 options validation, cooldown subscriptions and readiness events, raid assignments, group roles, talent caching, load conditions, talent triggers, taxi/vehicle conditions, PvP flags, ruleset migration, instance filters, restricted character stats, threat filters, and display-only health and absorb overlays with secret values.
 Cooldown checks include shared GCD events, deferred refreshes, and the recovery-presence fallback for restricted readiness. These simulate API responses and event ordering; restricted readiness still needs in-game verification.

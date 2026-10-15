@@ -1448,7 +1448,8 @@ local function TriggerInfoApplies(triggerInfo, unit)
   if triggerInfo.arenaSpec and unit:sub(1, 5) == "arena" then
     -- GetArenaOpponentSpec doesn't use unit ids!
     local i = tonumber(unit:sub(6))
-    if not triggerInfo.arenaSpec[GetArenaOpponentSpec(i)] then
+    local spec = GetArenaOpponentSpec(i)
+    if issecretvalue(spec) or not triggerInfo.arenaSpec[spec] then
       return false
     end
   end

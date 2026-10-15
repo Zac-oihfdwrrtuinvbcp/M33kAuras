@@ -1002,6 +1002,7 @@ local function GetBuffTriggerOptions(data, triggernum)
       type = "toggle",
       width = M33kAuras.normalWidth,
       name = L["Filter by Arena Spec"],
+      desc = "|cffffd200" .. L["Secret values"] .. "|r\n" .. L["Arena opponent specializations are secret, so this filter cannot match. Leave this filter unchecked to track auras without filtering by specialization."],
       order = 67.8,
       hidden = function() return
         not (M33kAuras.IsRetail() and trigger.type == "aura2" and trigger.unit == "arena")
